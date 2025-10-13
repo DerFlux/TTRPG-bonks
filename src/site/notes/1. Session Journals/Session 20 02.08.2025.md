@@ -2,11 +2,11 @@
 {"dg-publish":true,"permalink":"/1-session-journals/session-20-02-08-2025/"}
 ---
 
-[[Barbatos\|Barbatos]] knows the way deeper into the prison where [[3. NPC's/Avalon/Mira Crepus\|Mira]] is most likely being kept. She'd join our party for now.
+[[Barbatos\|Barbatos]] knows the way deeper into the prison where [[3. NPCs/Avalon/Mira Crepus\|Mira]] is most likely being kept. She'd join our party for now.
 
 [[4. Player characters/Mara Malinovinoch\|Mara]] kabedon'd [[4. Player characters/Freya Mythcrya\|Freya]], whispering into the mic everyone has. Inspecting her wounds, and then barrating her for how she fought that combat. From the utter embarrassment due to everyone hearing it, Freya would cover her face.
 
-[[Stellar Stellar\|Stellar Stellar]] and [[3. NPC's/Sakura Fubuki\|Sakura Fubuki]] both found one important target each. Mira still hasn't been found. 
+[[Stellar Stellar\|Stellar Stellar]] and [[3. NPCs/Sakura Fubuki\|Sakura Fubuki]] both found one important target each. Mira still hasn't been found. 
 
 ![image 1.png](/img/user/Images/image%201.png)
 
@@ -21,7 +21,7 @@ Mira Crepus
 
 
 
-Deity of [[3. NPC's/Thespians/Cartha Coccineus, the Scarlet Priestess\|Cartha]]: [[Z'oar\|Z'oar]]
+Deity of [[3. NPCs/Thespians/Cartha Coccineus, the Scarlet Priestess\|Cartha]]: [[Z'oar\|Z'oar]]
 Mara
 Cartha didn't give a shit anymore. It didn't feel satisfying to take care of her. As if she had given up and after all the world she had conquered, humor was the only thing carrying her on.
 
@@ -32,7 +32,7 @@ As everyone jumped down from the balcony to get to Barbatos's ship the flying du
 Grabbing Mara's waist as they flew together, with the wind on their faces.
 We went back to [[2. Locations/Astra/The Northern Lands/Leones/Leones\|Leones]] and got greeted by many people, [[2. Locations/Avalon/Avalon (Between Astra & Terra)\|Avalon]] included.
 
-For rescuing Mira, saving people from the prison and slaying the [[3. NPC's/Thespians/Thespians\|Thespian]] Cartha: 3500g
+For rescuing Mira, saving people from the prison and slaying the [[3. NPCs/Thespians/Thespians\|Thespian]] Cartha: 3500g
 
 Item lvl 12 and under
 
@@ -48,7 +48,7 @@ M: "Rather cute aren't you?"
 
 [[4. Player characters/Amantha the Fourth\|Amantha]] will be retiring as she had enough, but will stay in the island of Avalon.
 
-[[3. NPC's/Avalon/Xavier Crepus\|Xavier]] announced that the [[3. NPC's/Avalon/Unholy Witches\|Unholy Witches]] will be splitting apart for a while. For 2 months they'll be exploring different areas within the world, spreading the name of [[2. Locations/Avalon/Avalon (Between Astra & Terra)\|Avalon]] and the adventurers guild by committing good deeds and so forth, similar to what Abigail and Edd are doing. 
+[[3. NPCs/Avalon/Xavier Crepus\|Xavier]] announced that the [[3. NPCs/Avalon/Unholy Witches\|Unholy Witches]] will be splitting apart for a while. For 2 months they'll be exploring different areas within the world, spreading the name of [[2. Locations/Avalon/Avalon (Between Astra & Terra)\|Avalon]] and the adventurers guild by committing good deeds and so forth, similar to what Abigail and Edd are doing. 
 
 Mara gifted everyone an item as a surprise but she wasn't there to see it as she had left already.  Freya got a crown of witchcraft. Amantha got the daredevil boots and [[4. Player characters/Velvet Crowe\|Velvet]] a Instinct crown.
 

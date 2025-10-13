@@ -4,7 +4,7 @@
 
 We arrived at [[Hela\|Hela]]
 
-[[3. NPC's/Avalon/The Divine Destinies\|The Divine Destinies]] are split up from us to not arouse suspicion
+[[3. NPCs/Avalon/The Divine Destinies\|The Divine Destinies]] are split up from us to not arouse suspicion
 
 [[4. Player characters/Mara Malinovinoch\|Mara]] feels at home, Freya doesn't due to the cold
 
@@ -56,7 +56,7 @@ The stellar team made a b line straight to Hela.
 
 They saw someone resembling Mira being loaded into the ship a few weeks ago.
 
-We were ambushed by [[3. NPC's/Thespians/Thespians\|Thespian]] Midgard knights and casters
+We were ambushed by [[3. NPCs/Thespians/Thespians\|Thespian]] Midgard knights and casters
 
 Mara used an anime like attack with her scythe Striking 3 of them
 

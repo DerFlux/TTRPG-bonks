@@ -4,7 +4,7 @@
 
 Went to the market to get some disguise kits.
 
-[[3. NPC's/Avalon/Jay\|Jay]] approached us recently, saying he was our escort to go to [[2. Locations/Astra/The Northern Lands/Kingdom of Midgard/Kingdom of Midgard\|Kingdom of Midgard]].
+[[3. NPCs/Avalon/Jay\|Jay]] approached us recently, saying he was our escort to go to [[2. Locations/Astra/The Northern Lands/Kingdom of Midgard/Kingdom of Midgard\|Kingdom of Midgard]].
 
 Later on, on the sea we were called to the captain's quarters in the ship.
 Jay was there as well

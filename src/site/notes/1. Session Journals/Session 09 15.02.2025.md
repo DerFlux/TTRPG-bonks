@@ -12,13 +12,13 @@ We faced some [Barghest](https://2e.aonprd.com/Monsters.aspx?ID=2846)  as a red-
 
 After we beat them, we got 2 Shadow Signets. [[4. Player characters/Freya Mythcrya\|Freya]] and [[4. Player characters/Mara Malinovinoch\|Mara]] took those items.
 
-We soon followed some more tracks and ended up finding [[3. NPC's/Thespians/Adlibs\|Adlibs]] and a [[3. NPC's/Thespians/Quovadis\|Quovadis]] [[3. NPC's/Thespians/Thespians\|Thespian]] and fought them. After we won and beat the Quovadis in a non-lethal way she turned into a young farm girl. 
+We soon followed some more tracks and ended up finding [[3. NPCs/Thespians/Adlibs\|Adlibs]] and a [[3. NPCs/Thespians/Quovadis\|Quovadis]] [[3. NPCs/Thespians/Thespians\|Thespian]] and fought them. After we won and beat the Quovadis in a non-lethal way she turned into a young farm girl. 
 
-We ended up finding Kevin in the cave past, half turned into a [[3. NPC's/Thespians/Thespians\|Thespian]] already. Mara would use several spells like cleanse affliction, cleanse mind and similar. Freya would use the pocket library spell to find out anything about it, [[4. Player characters/Amantha the Fourth\|Amantha]] would try to heal the kid and [[4. Player characters/Velvet Crowe\|Velvet]] would consult her [[3. NPC's/Thespians/Quaeritas the claw of despair\|arm]]. 
+We ended up finding Kevin in the cave past, half turned into a [[3. NPCs/Thespians/Thespians\|Thespian]] already. Mara would use several spells like cleanse affliction, cleanse mind and similar. Freya would use the pocket library spell to find out anything about it, [[4. Player characters/Amantha the Fourth\|Amantha]] would try to heal the kid and [[4. Player characters/Velvet Crowe\|Velvet]] would consult her [[3. NPCs/Thespians/Quaeritas the claw of despair\|arm]]. 
 
 The arm would tell her that it's the same transformation that she went through. The thing is though, that the child's mind is still intact. No Thespian is actually inside the child, like with Velvet. 
 
-Mara messaged the [[3. NPC's/Avalon/Atlas, The Barron\|Unknown Contact]] for help. We will be meeting up with them at our camp to save the child.
+Mara messaged the [[3. NPCs/Avalon/Atlas, The Barron\|Unknown Contact]] for help. We will be meeting up with them at our camp to save the child.
 
 We met up with the rest of the party at the camp.
 

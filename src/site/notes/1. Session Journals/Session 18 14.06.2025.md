@@ -11,8 +11,8 @@ Additional note: They are definitely after you.
 
 If we keep going to the nearest border from the thieves guild/shop/bar/restaurant, there will be people waiting for us. Bar has been compromised.
 
-We ended up getting ambushed by [[3. NPC's/Thespians/Thespians\|Thespians]]. A quavadis, ad lib and a dragon.
+We ended up getting ambushed by [[3. NPCs/Thespians/Thespians\|Thespians]]. A quavadis, ad lib and a dragon.
 
-Velvet got to a critical state (0hp) and [[3. NPC's/Thespians/Quaeritas the claw of despair\|Quaeritas the claw of despair]] came out and took control, fighting the dragon. 
+Velvet got to a critical state (0hp) and [[3. NPCs/Thespians/Quaeritas the claw of despair\|Quaeritas the claw of despair]] came out and took control, fighting the dragon. 
 
 
