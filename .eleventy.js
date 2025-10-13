@@ -521,16 +521,9 @@ module.exports = function (eleventyConfig) {
     return content;
   });
 
-  // Existing passthroughs
   eleventyConfig.addPassthroughCopy("src/site/img");
   eleventyConfig.addPassthroughCopy("src/site/scripts");
   eleventyConfig.addPassthroughCopy("src/site/styles/_theme.*.css");
-
-  // ✅ NEW: passthrough copy for standalone HTML page into the notes tree
-  eleventyConfig.addPassthroughCopy({
-    "src/site/extra/worldbuilding-locations.html": "notes/worldbuilding-locations/index.html"
-  });
-
   eleventyConfig.addPlugin(faviconsPlugin, { outputDir: "dist" });
   eleventyConfig.addPlugin(tocPlugin, {
     ul: true,
@@ -546,26 +539,11 @@ module.exports = function (eleventyConfig) {
     }
   });
   
-  // Filters
   eleventyConfig.addFilter("jsonify", function (variable) {
     return JSON.stringify(variable) || '""';
   });
 
   eleventyConfig.addFilter("validJson", function (variable) {
-    if (Array.isArray(variable)) {
-      return variable.map((x) => x.replaceAll("\\", "\\\\")).join(",");
-    } else if (typeof variable === "string") {
-      return variable.replaceAll("\\", "\\\\");
-    }
-    return variable;
-  });
-
-  // ✅ NEW: Make filters available explicitly to Nunjucks templates (.njk)
-  eleventyConfig.addNunjucksFilter("jsonify", function (variable) {
-    return JSON.stringify(variable) || '""';
-  });
-
-  eleventyConfig.addNunjucksFilter("validJson", function (variable) {
     if (Array.isArray(variable)) {
       return variable.map((x) => x.replaceAll("\\", "\\\\")).join(",");
     } else if (typeof variable === "string") {
