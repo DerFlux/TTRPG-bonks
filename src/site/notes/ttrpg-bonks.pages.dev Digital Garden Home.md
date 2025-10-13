@@ -1,5 +1,5 @@
 ---
-{"dg-publish":true,"permalink":"/ttrpg-bonks-pages-dev-digital-garden-home/","tags":["gardenEntry"]}
+{"dg-publish":true,"permalink":"/ttrpg-bonks-pages-dev-digital-garden-home/"}
 ---
 
 This is a test if it works!!!!!
