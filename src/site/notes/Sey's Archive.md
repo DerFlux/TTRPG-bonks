@@ -4,4 +4,4 @@
 
 
 
-![Worldbuilding Locations 13.10.2025.png](/img/user/Worldbuilding%20Locations%2013.10.2025.png)
+![Worldbuilding Locations 13.10.2025.png](/img/user/Images/Worldbuilding%20Locations%2013.10.2025.png)
