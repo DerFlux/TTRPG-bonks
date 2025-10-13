@@ -23,7 +23,7 @@ function transformImage(src, cls, alt, sizes, widths = ["500", "700", "auto"]) {
     urlPath: "/img/optimized",
   };
 
-  // generate images, while this is async we don’t wait
+  // generate images, while this is async we donâ€™t wait
   Image(src, options);
   let metadata = Image.statsSync(src, options);
   return metadata;
