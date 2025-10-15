@@ -118,9 +118,20 @@ class CanvasApp {
       const imgEl = el.querySelector('img[data-role="card-img"]');
       let idx = 0;
       imgEl.addEventListener('error', () => {
+        // try next candidate
         if (idx + 1 < candidates.length) {
+          console.warn('Image failed, trying next:', candidates[idx]);
           idx += 1;
           imgEl.src = candidates[idx];
+        } else {
+          // all failed: show a small badge and log
+          console.error('All image candidates failed for', (item.title || item.id), candidates);
+          const badge = document.createElement('div');
+          badge.textContent = 'IMG 404';
+          badge.style.cssText =
+            'position:absolute;top:8px;right:8px;background:#c0392b;color:#fff;' +
+            'font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px;';
+          el.appendChild(badge);
         }
       });
     }
