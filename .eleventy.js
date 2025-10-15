@@ -23,7 +23,7 @@ function transformImage(src, cls, alt, sizes, widths = ["500", "700", "auto"]) {
     urlPath: "/img/optimized",
   };
 
-  // generate images, while this is async we donâ€™t wait
+  // generate images, while this is async we don’t wait
   Image(src, options);
   let metadata = Image.statsSync(src, options);
   return metadata;
@@ -381,14 +381,7 @@ module.exports = function (eleventyConfig) {
           }
         );
 
-        /* Hacky fix for callouts with only a title:
-        This will ensure callout-content isn't produced if
-        the callout only has a title, like this:
-        ```md
-        > [!info] i only have a title
-        ```
-        Not sure why content has a random <p> tag in it,
-        */
+        /* Hacky fix for callouts with only a title: */
         if (content === "\n<p>\n") {
           content = "";
         }
@@ -468,7 +461,7 @@ module.exports = function (eleventyConfig) {
             fillPictureSourceSets(src, cls, alt, meta, width, imageTag);
           }
         } catch {
-          // Make it fault tolarent.
+          // Make it fault tolerant.
         }
       }
     }
@@ -521,15 +514,21 @@ module.exports = function (eleventyConfig) {
     return content;
   });
 
+  // Passthroughs
   eleventyConfig.addPassthroughCopy("src/site/img");
   eleventyConfig.addPassthroughCopy("src/site/scripts");
   eleventyConfig.addPassthroughCopy("src/site/styles/_theme.*.css");
+
+  // ✅ NEW: copy raw HTML notes straight through to /notes/
+  eleventyConfig.addPassthroughCopy("src/site/notes/*.html");
+  // (optional) watch HTML notes so local/CI builds rebuild when they change
+  eleventyConfig.addWatchTarget("src/site/notes/*.html");
+
   eleventyConfig.addPlugin(faviconsPlugin, { outputDir: "dist" });
   eleventyConfig.addPlugin(tocPlugin, {
     ul: true,
     tags: ["h1", "h2", "h3", "h4", "h5", "h6"],
   });
-
 
   eleventyConfig.addFilter("dateToZulu", function (date) {
     try {
