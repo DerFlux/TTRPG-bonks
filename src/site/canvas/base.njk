@@ -1,0 +1,25 @@
+---
+layout: layouts/index.njk
+permalink: /canvas/
+title: Canvas
+---
+
+<!-- Keep content minimal; layout will bring in global CSS/JS/fonts -->
+<main class="container prose">
+  <h1 class="sr-only">World Canvas</h1>
+
+  <!-- Optional: a light wrapper card if your site uses prose/containers -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <link rel="stylesheet" href="/canvas/styles.css">
+    <div id="canvas-container">
+      <div id="world"></div>
+      <div class="toolbar">
+        <button id="btn-reset" type="button">Reset view</button>
+        <span id="zoom-level">100%</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script defer src="/canvas/canvas.js"></script>
+<script defer src="/canvas/main.js"></script>
