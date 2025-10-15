@@ -3,13 +3,11 @@
   const container = document.getElementById('canvas-container');
   const world = document.getElementById('world');
   const app = new CanvasApp(container, world);
-  // expose for quick console checks
-  window.CanvasAppInstance = app;
+  window.CanvasAppInstance = app; // debugging
 
   // ---------- helpers ----------
   const isImagePath = (p) => /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(p || "");
 
-  // Slugify (still used for fallback URL construction, but manifest is preferred)
   function slugifySegment(seg) {
     return String(seg || "")
       .replace(/&/g, " and ")
@@ -21,32 +19,22 @@
       .toLowerCase();
   }
 
-  // You can keep segmentMap; manifest generally makes this unnecessary
-  const segmentMap = new Map([
-    ["3-npcs", "3-np-cs"],
-  ]);
-  const mapSegment = (seg) => segmentMap.get(slugifySegment(seg)) || slugifySegment(seg);
+  const encodePath = (p) => p.split("/").map((seg) => encodeURIComponent(seg)).join("/");
 
   // Fallback builder when manifest cannot resolve
   function noteUrlFromVaultPath(vaultPath) {
-    if (!vaultPath) return null;
-    if (isImagePath(vaultPath)) return null;
+    if (!vaultPath || isImagePath(vaultPath)) return null;
     const withoutExt = vaultPath.replace(/\.md$/i, "");
-    const parts = withoutExt.split("/").map(mapSegment).filter(Boolean);
-    return "/" + parts.join("/") + "/"; // your site uses trailing slashes
+    const parts = withoutExt.split("/").map(slugifySegment).filter(Boolean);
+    return "/" + parts.join("/") + "/";
   }
 
-  // Encode each path segment safely (spaces, parentheses, etc.)
-  const encodePath = (p) => p.split("/").map((seg) => encodeURIComponent(seg)).join("/");
-
-  // Preferred mapping: Obsidian “Images/…” → /img/user/Images/…
   function imageUrlFromVaultPath(vaultPath) {
     if (!vaultPath) return null;
     const stripped = vaultPath.replace(/^Images\//i, "");
     return "/img/user/Images/" + encodePath(stripped);
   }
 
-  // Robust fallbacks for image nodes
   function imageCandidatesFromVaultPath(vaultPath) {
     if (!vaultPath) return [];
     const stripped = vaultPath.replace(/^Images\//i, "");
@@ -56,19 +44,13 @@
     const m = /^(.*?)(\.[^.]+)?$/.exec(stripped);
     const base = m[1] || stripped;
     const ext = (m[2] || "").toLowerCase();
-
     const encodeBoth = (b, e) => encodePath(b) + e;
 
     const extVariants = ext
       ? Array.from(new Set([ext, ext.toUpperCase()]))
       : [".png", ".PNG", ".jpg", ".JPG", ".jpeg", ".JPEG"];
 
-    const prefixes = [
-      "/img/user/Images/",
-      "/img/user/images/",
-      "/img/",
-    ];
-
+    const prefixes = ["/img/user/Images/", "/img/user/images/", "/img/"];
     const bases = Array.from(new Set([base, base.toLowerCase()]));
     const candidates = [];
 
@@ -94,7 +76,6 @@
     return Array.from(new Set(candidates));
   }
 
-  // Extract embedded image wikilinks from text, e.g. "![[Abigail Teach.png]]"
   function extractEmbeddedImages(markdownishText) {
     const text = String(markdownishText || "");
     const regex = /!\[\[([^|\]]+)(?:\|[^]]*)?\]\]/g;
@@ -102,16 +83,14 @@
     let m;
     while ((m = regex.exec(text)) !== null) {
       let f = m[1].trim();
-      if (!/[\/\\]/.test(f)) f = "Images/" + f; // filename only → Images/<file>
+      if (!/[\/\\]/.test(f)) f = "Images/" + f;
       files.push(f);
     }
     return files;
   }
 
-  // Remove embedded image syntax for cleaner description
   const stripEmbeddedImages = (s) => String(s || "").replace(/!\[\[[^\]]+\]\]/g, "").trim();
 
-  // Use first Markdown heading as title, rest as description
   function extractTitleAndDesc(markdownishText) {
     const text = String(markdownishText || "");
     const lines = text.split(/\r?\n/);
@@ -120,7 +99,6 @@
     return { title: first || "Text", desc: rest };
   }
 
-  // Guess image name from a note title (for NPCs etc.)
   function nameBasedImageCandidates(title) {
     if (!title) return [];
     const raw = title.replace(/\.[^.]+$/, "");
@@ -133,15 +111,13 @@
     const cands = [];
     for (const v of variants) {
       const enc = encodePath(v);
-      for (const e of exts) {
-        cands.push(`/img/user/Images/${enc}${e}`);
-      }
+      for (const e of exts) cands.push(`/img/user/Images/${enc}${e}`);
     }
     return cands;
   }
 
   // -------- Manifest loading & indexing --------
-  let ManifestIndex = null; // built form
+  let ManifestIndex = null;
 
   async function loadManifest() {
     try {
@@ -149,18 +125,17 @@
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const man = await resp.json();
       ManifestIndex = indexManifest(man);
-      // expose for debugging
       window.__PageManifestIndex = ManifestIndex;
     } catch (e) {
-      console.warn("Could not load /page-manifest.json; will use slug fallback.", e);
-      ManifestIndex = { entries: [], byKey: new Map() };
+      console.warn("Could not load /page-manifest.json; using slug fallback.", e);
+      ManifestIndex = { entries: [], byKey: new Map(), byTitleSlug: new Map() };
     }
   }
 
-  // Accepts either an array of entries or an object map.
-  // Tries to extract {url, filePathStem, inputPath, source, title}
   function indexManifest(man) {
     const entries = [];
+    const byKey = new Map();
+    const byTitleSlug = new Map();
 
     const pushEntry = (obj) => {
       if (!obj) return;
@@ -169,22 +144,12 @@
       const inputPath = obj.inputPath || obj.input || obj.pageInputPath || obj.source || null;
       const source = obj.sourcePath || obj.page?.inputPath || obj.data?.page?.inputPath || null;
       const title = obj.title || obj.data?.title || null;
-
       const entry = { url, filePathStem, inputPath, source, title, raw: obj };
-      if (entry.url || entry.filePathStem || entry.inputPath || entry.source) {
-        entries.push(entry);
-      }
+      if (entry.url || entry.filePathStem || entry.inputPath || entry.source) entries.push(entry);
     };
 
-    if (Array.isArray(man)) {
-      man.forEach(pushEntry);
-    } else if (man && typeof man === "object") {
-      // If it's a dictionary, the values might be entries
-      Object.values(man).forEach(pushEntry);
-    }
-
-    // Build key map with a bunch of lookup keys
-    const byKey = new Map();
+    if (Array.isArray(man)) man.forEach(pushEntry);
+    else if (man && typeof man === "object") Object.values(man).forEach(pushEntry);
 
     const addKey = (k, entry) => {
       if (!k) return;
@@ -194,22 +159,29 @@
       byKey.get(key).push(entry);
     };
 
+    const norm = (s) => String(s || "").replace(/^\.?\/*/, "").toLowerCase();
+
     for (const e of entries) {
-      // direct keys
+      const stem = e.filePathStem ? e.filePathStem.replace(/^\/*/, "") : "";
       addKey(e.url, e);
       addKey(e.filePathStem, e);
       addKey(e.inputPath, e);
       addKey(e.source, e);
-
-      // normalized variants
-      const norm = (s) => String(s || "").replace(/^\.?\/*/, "").toLowerCase();
-      const stem = e.filePathStem ? e.filePathStem.replace(/^\/*/, "") : "";
-      addKey(norm(stem), e);              // "2-locations/terra/terra"
-      addKey("/" + norm(stem), e);        // "/2-locations/terra/terra"
+      addKey(norm(stem), e);
+      addKey("/" + norm(stem), e);
       addKey(norm(e.inputPath), e);
       addKey(norm(e.source), e);
 
-      // also store last 2–3 segments for fuzzy lookups
+      // Title-based lookup
+      if (e.title) {
+        const tslug = slugifySegment(e.title);
+        if (tslug) {
+          if (!byTitleSlug.has(tslug)) byTitleSlug.set(tslug, []);
+          byTitleSlug.get(tslug).push(e);
+        }
+      }
+
+      // last 2–3 segments
       const segs = (stem || "").split("/").filter(Boolean);
       const last2 = segs.slice(-2).join("/");
       const last3 = segs.slice(-3).join("/");
@@ -217,10 +189,9 @@
       addKey(norm(last3), e);
     }
 
-    return { entries, byKey };
+    return { entries, byKey, byTitleSlug };
   }
 
-  // ----- NEW: smarter candidate generation for manifest lookups -----
   function normalizeCanvasPath(p) {
     return String(p || "")
       .replace(/\\/g, "/")
@@ -232,38 +203,27 @@
   function manifestCandidatesFromCanvasPath(canvasPath) {
     const base = normalizeCanvasPath(canvasPath);
     const lc = base.toLowerCase();
-
-    // Split into segments for transformations
     const rawParts = lc.split("/").filter(Boolean);
-
-    // Apply Eleventy-ish slugify per segment
     const slugParts = rawParts.map(slugifySegment);
 
-    // Known folder rename (e.g., "3. npcs" -> "3-np-cs")
-    const correctedParts = slugParts.map((seg, i) => {
-      if (i === 0 && (seg === "3-npcs" || seg === "3--npcs")) return "3-np-cs";
-      return seg;
-    });
+    // 3. npcs → 3-np-cs (common in your build)
+    if (slugParts[0] === "3-npcs" || slugParts[0] === "3--npcs") slugParts[0] = "3-np-cs";
 
-    const stemCandidate = "/" + correctedParts.join("/");
-
-    // Also build variants that strip punctuation aggressively from last segment
+    const stemCandidate = "/" + slugParts.join("/");
     const last = rawParts[rawParts.length - 1] || "";
     const lastNoPunct = last.replace(/[(),]/g, "").replace(/\s+/g, " ").trim();
     const altLast = slugifySegment(lastNoPunct);
-    const altStemCandidate =
-      "/" + correctedParts.slice(0, -1).concat([altLast]).join("/");
+    const altStemCandidate = "/" + slugParts.slice(0, -1).concat([altLast]).join("/");
 
     const cands = new Set([
-      base,                 // "3. npcs/avalon/mythra crepus"
-      lc,                   // lowercased
-      stemCandidate,        // "/3-np-cs/avalon/mythra-crepus"
+      base,
+      lc,
+      stemCandidate,
       stemCandidate.slice(1),
-      altStemCandidate,     // "/3-np-cs/avalon/vavel-the-black-dragon" (no comma)
+      altStemCandidate,
       altStemCandidate.slice(1),
     ]);
 
-    // last-2 and last-3 segments (raw + slug)
     const last2Raw = rawParts.slice(-2).join("/");
     const last3Raw = rawParts.slice(-3).join("/");
     if (last2Raw) {
@@ -279,19 +239,16 @@
       );
     }
 
-    // Common punctuation and & → and normalization on whole path
-    cands.add(
-      lc.replace(/[(),]/g, "").replace(/&/g, "and").replace(/\s+/g, "-")
-    );
-
+    cands.add(lc.replace(/[(),]/g, "").replace(/&/g, "and").replace(/\s+/g, "-"));
     return Array.from(cands);
   }
 
-  // Resolve a canvas markdown path via manifest (using the new candidates)
+  // Resolve a canvas markdown path via manifest (now includes title fallback)
   function resolveUrlFromManifest(canvasPath) {
     if (!ManifestIndex) return null;
-    const { byKey } = ManifestIndex;
+    const { byKey, byTitleSlug } = ManifestIndex;
 
+    // try key-based matches
     const candidates = manifestCandidatesFromCanvasPath(canvasPath);
     for (const key of candidates) {
       const arr = byKey.get(String(key).trim());
@@ -301,7 +258,14 @@
       }
     }
 
-    // last resort: suffix match
+    // title-based fallback: compare last segment to titles
+    const lastSeg = slugifySegment(normalizeCanvasPath(canvasPath).split("/").pop());
+    if (lastSeg && byTitleSlug.has(lastSeg)) {
+      const hit = byTitleSlug.get(lastSeg).find(e => !!e.url) || byTitleSlug.get(lastSeg)[0];
+      if (hit) return hit.url || null;
+    }
+
+    // very last resort: suffix match over entries
     const lcNoMd = normalizeCanvasPath(canvasPath).toLowerCase();
     for (const e of ManifestIndex.entries) {
       if (
@@ -359,7 +323,6 @@
       const src = img.getAttribute("src");
       if (src) return new URL(src, pageUrl).href;
     }
-
     return "";
   }
 
@@ -371,10 +334,7 @@
       if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${url}`);
       const html = await resp.text();
       const doc = new DOMParser().parseFromString(html, "text/html");
-      return {
-        image: firstImageUrl(doc, url),
-        teaser: firstNonEmptyParagraph(doc),
-      };
+      return { image: firstImageUrl(doc, url), teaser: firstNonEmptyParagraph(doc) };
     })();
     pageCache.set(url, p);
     return p;
@@ -395,7 +355,6 @@
       if (n.type === "text") {
         const embeds = extractEmbeddedImages(n.text);
         const { title, desc } = extractTitleAndDesc(stripEmbeddedImages(n.text));
-
         const item = { ...common, title, description: desc };
         if (embeds.length) item.imageCandidates = imageCandidatesFromVaultPath(embeds[0]);
         items.push(item);
@@ -412,7 +371,6 @@
             imageCandidates: imageCandidatesFromVaultPath(f)
           });
         } else {
-          // Markdown note card. Build a clean breadcrumb; URL resolved via manifest later.
           const parts = f.replace(/\.md$/i, "").split("/");
           const title = parts.pop();
           const crumb = parts.length ? parts.join(" › ") : "";
@@ -420,21 +378,16 @@
             ...common,
             title,
             description: crumb,
-            _canvasPath: f,                 // keep original path for manifest lookup
-            _needsManifestResolve: true,    // mark for manifest resolution
-            _needsEnrich: true,             // then enrichment
+            _canvasPath: f,
+            _needsManifestResolve: true,
+            _needsEnrich: true,
             _nameGuesses: nameBasedImageCandidates(title)
           });
         }
         continue;
       }
 
-      // Fallback
-      items.push({
-        ...common,
-        title: n.type || "node",
-        description: n.file || n.text || "",
-      });
+      items.push({ ...common, title: n.type || "node", description: n.file || n.text || "" });
     }
 
     for (const e of (jsonCanvas.edges || [])) {
@@ -444,19 +397,33 @@
     return { items, edges };
   }
 
-  // Resolve all Markdown notes via manifest; then attach .link
+  // Decorate unresolved cards with a visible badge
+  function markUnresolvedCards(appInstance) {
+    const unresolved = (appInstance.data.items || []).filter(it => !it.link && !it._needsManifestResolve && it._canvasPath);
+    if (!unresolved.length) return;
+    for (const it of unresolved) {
+      const el = [...document.querySelectorAll('.card')].find(n => n._itemId === it.id);
+      if (!el) continue;
+      const b = document.createElement('div');
+      b.textContent = 'URL ?';
+      b.style.cssText = 'position:absolute;top:8px;left:8px;background:#8e44ad;color:#fff;font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px;';
+      el.appendChild(b);
+      console.warn('[Canvas] No URL resolved from manifest for:', it.title, 'canvasPath=', it._canvasPath);
+    }
+  }
+
   function resolveNotesViaManifest(appInstance) {
     const items = appInstance.data.items || [];
     for (const it of items) {
       if (!it._needsManifestResolve) continue;
       const url = resolveUrlFromManifest(it._canvasPath);
-      it.link = url || noteUrlFromVaultPath(it._canvasPath); // fallback if manifest misses
+      it.link = url || noteUrlFromVaultPath(it._canvasPath);
       delete it._needsManifestResolve;
     }
     appInstance.render();
+    markUnresolvedCards(appInstance);
   }
 
-  // Enrichment (first image + teaser) using real URL
   async function enrichNotesFromHtml(appInstance) {
     const items = appInstance.data.items || [];
     const toEnrich = items.filter(it => it._needsEnrich && it.link);
@@ -499,6 +466,14 @@
           appInstance.render();
         } catch (err) {
           console.warn("Enrich failed for", item.link, err);
+          // visible badge on enrichment failure
+          const el = [...document.querySelectorAll('.card')].find(n => n._itemId === item.id);
+          if (el) {
+            const b = document.createElement('div');
+            b.textContent = 'ENR 404';
+            b.style.cssText = 'position:absolute;top:8px;left:8px;background:#555;color:#fff;font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px;';
+            el.appendChild(b);
+          }
         } finally {
           delete item._needsEnrich;
           delete item._nameGuesses;
@@ -518,27 +493,17 @@
   // ---------- boot ----------
   (async () => {
     try {
-      // 1) Load manifest first
       await loadManifest();
-
-      // 2) Load your Obsidian canvas JSON (placed in src/site/canvas/)
       const jsonCanvas = await loadJsonCanvas("tir.canvas.json");
       const data = adaptJsonCanvas(jsonCanvas);
-
-      // 3) Initial render
       app.setData(data);
-
-      // 4) Resolve Markdown note URLs via manifest
       resolveNotesViaManifest(app);
-
-      // 5) Progressive enrichment (fetch first image + paragraph for note cards)
       await enrichNotesFromHtml(app);
     } catch (err) {
       console.error("Failed to load/enrich canvas with manifest:", err);
       app.setData({ items: [] });
     }
 
-    // Buttons (if present)
     const resetBtn = document.getElementById('btn-reset');
     if (resetBtn) resetBtn.addEventListener('click', () => app.resetView());
 
