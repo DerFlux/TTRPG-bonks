@@ -31,38 +31,68 @@
 
     const withoutExt = vaultPath.replace(/\.md$/i, "");
     const parts = withoutExt.split("/").map(mapSegment).filter(Boolean);
-
-    // Your site uses trailing slash on note pages
-    return "/" + parts.join("/") + "/";
+    return "/" + parts.join("/") + "/"; // your site uses trailing slashes
   }
 
-  // Preferred mapping: Obsidian “Images/…” → /img/user/Images/… (URL-encoded)
+  // Encode each path segment safely (spaces, parentheses, etc.)
+  const encodePath = (p) =>
+    p.split("/").map((seg) => encodeURIComponent(seg)).join("/");
+
+  // Preferred mapping: Obsidian “Images/…” → /img/user/Images/…
   function imageUrlFromVaultPath(vaultPath) {
     if (!vaultPath) return null;
     const stripped = vaultPath.replace(/^Images\//i, "");
-    return "/img/user/Images/" + encodeURI(stripped);
+    return "/img/user/Images/" + encodePath(stripped);
   }
 
-  // Robust fallbacks: try multiple public locations and case variants
+  // Robust fallbacks: multiple locations, case and extension variants
   function imageCandidatesFromVaultPath(vaultPath) {
     if (!vaultPath) return [];
     const stripped = vaultPath.replace(/^Images\//i, "");
-    const enc = encodeURI(stripped);
-
-    // Also try a lowercase path variant in case of case-mismatch in publishing
+    const enc = encodePath(stripped);              // segment-encoded
     const lowerEnc = enc.toLowerCase();
 
-    const cands = [
-      "/img/user/Images/" + enc,       // preferred (your repo path)
-      "/img/user/images/" + enc,       // same but folder lowercased
-      "/img/user/Images/" + lowerEnc,  // lowercased filename
-      "/img/user/images/" + lowerEnc,  // both folders+file lowercased
-      "/img/Images/" + enc,            // optional alt publish
-      "/canvas/Images/" + enc          // if you ever drop next to app
+    // split base/ext
+    const m = /^(.*?)(\.[^.]+)?$/.exec(stripped);
+    const base = m[1] || stripped;
+    const ext = (m[2] || "").toLowerCase();
+
+    const encodeBoth = (b, e) => encodePath(b) + e;
+
+    const extVariants = ext
+      ? Array.from(new Set([ext, ext.toUpperCase()]))
+      : [".png", ".PNG", ".jpg", ".JPG", ".jpeg", ".JPEG"];
+
+    const prefixes = [
+      "/img/user/Images/",
+      "/img/user/images/",
+      "/img/", // just in case images ended up directly under /img
     ];
 
-    // De-dup
-    return Array.from(new Set(cands));
+    const bases = Array.from(new Set([base, base.toLowerCase()]));
+    const candidates = [];
+
+    for (const prefix of prefixes) {
+      for (const b of bases) {
+        for (const e of extVariants) {
+          candidates.push(prefix + encodeBoth(b, e));
+        }
+      }
+    }
+
+    // Also include the raw encodings
+    candidates.push(
+      "/img/user/Images/" + enc,
+      "/img/user/images/" + enc,
+      "/img/user/Images/" + lowerEnc,
+      "/img/user/images/" + lowerEnc,
+      "/img/" + enc,
+      "/img/" + lowerEnc,
+      "/img/Images/" + enc,
+      "/canvas/Images/" + enc
+    );
+
+    return Array.from(new Set(candidates));
   }
 
   // Extract embedded image wikilinks from text, e.g. "![[Abigail Teach.png]]"
@@ -72,7 +102,6 @@
     const files = [];
     let m;
     while ((m = regex.exec(text)) !== null) {
-      // m[1] is the path or filename. If no folder, assume under "Images/"
       let f = m[1].trim();
       if (!/[\/\\]/.test(f)) f = "Images/" + f; // filename only → Images/<file>
       files.push(f);
@@ -80,10 +109,8 @@
     return files;
   }
 
-  // Remove the embedded image syntax from description for cleaner display
-  function stripEmbeddedImages(markdownishText) {
-    return String(markdownishText || "").replace(/!\[\[[^\]]+\]\]/g, "").trim();
-  }
+  // Remove embedded image syntax for cleaner description
+  const stripEmbeddedImages = (s) => String(s || "").replace(/!\[\[[^\]]+\]\]/g, "").trim();
 
   // Use first Markdown heading as title, rest as description
   function extractTitleAndDesc(markdownishText) {
@@ -107,13 +134,11 @@
       };
 
       if (n.type === "text") {
-        // Parse embeds like ![[Abigail Teach.png]]
         const embeds = extractEmbeddedImages(n.text);
         const { title, desc } = extractTitleAndDesc(stripEmbeddedImages(n.text));
 
         const item = { ...common, title, description: desc };
         if (embeds.length) {
-          // Attach candidates for the FIRST embedded image
           item.imageCandidates = imageCandidatesFromVaultPath(embeds[0]);
         }
         items.push(item);
@@ -149,11 +174,7 @@
     }
 
     for (const e of (jsonCanvas.edges || [])) {
-      edges.push({
-        from: e.fromNode,
-        to: e.toNode,
-        label: e.label || "",
-      });
+      edges.push({ from: e.fromNode, to: e.toNode, label: e.label || "" });
     }
 
     return { items, edges };
@@ -168,7 +189,6 @@
   // ---------- boot ----------
   (async () => {
     try {
-      // Load your Obsidian canvas JSON (placed in src/site/canvas/)
       const jsonCanvas = await loadJsonCanvas("tir.canvas.json");
       const data = adaptJsonCanvas(jsonCanvas);
       app.setData(data);
