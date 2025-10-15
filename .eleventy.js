@@ -515,10 +515,14 @@ module.exports = function (eleventyConfig) {
   });
 
   // Passthroughs
-  eleventyConfig.addPassthroughCopy("src/site/img");
-  eleventyConfig.addPassthroughCopy("src/site/scripts");
-  eleventyConfig.addPassthroughCopy("src/site/styles/_theme.*.css");
-  eleventyConfig.addPassthroughCopy({ "src/site/canvas": "canvas" });
+eleventyConfig.addPassthroughCopy("src/site/img");
+eleventyConfig.addPassthroughCopy("src/site/scripts");
+eleventyConfig.addPassthroughCopy("src/site/styles/_theme.*.css");
+eleventyConfig.addPassthroughCopy({ "src/site/canvas": "canvas" });
+
+// ✅ make sure _redirects reaches /dist
+eleventyConfig.addPassthroughCopy("src/site/_redirects");
+
 
 
   // ✅ NEW: copy raw HTML notes straight through to /notes/
