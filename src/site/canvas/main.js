@@ -3,39 +3,31 @@
   const container = document.getElementById('canvas-container');
   const world = document.getElementById('world');
   const app = new CanvasApp(container, world);
+  // expose for quick console checks
+  window.CanvasAppInstance = app;
 
   // ---------- helpers ----------
   const isImagePath = (p) => /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(p || "");
 
-  // Slugify a single path segment similar to Eleventy's output
+  // Slugify (still used for fallback URL construction, but manifest is preferred)
   function slugifySegment(seg) {
     return String(seg || "")
+      .replace(/&/g, " and ")
       .trim()
-      .replace(/\./g, " ")                 // "3. NPCs" → "3 NPCs"
-      .replace(/[^\p{L}\p{N}]+/gu, "-")    // spaces/punct → hyphen
-      .replace(/-+/g, "-")                 // collapse hyphens
-      .replace(/^-|-$/g, "")               // trim hyphens
+      .replace(/\./g, " ")
+      .replace(/[^\p{L}\p{N}]+/gu, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
       .toLowerCase();
   }
 
-  // Some folders are renamed by your site build (e.g. "3. NPCs" -> "3-np-cs")
+  // You can keep segmentMap; manifest generally makes this unnecessary
   const segmentMap = new Map([
     ["3-npcs", "3-np-cs"],
   ]);
   const mapSegment = (seg) => segmentMap.get(slugifySegment(seg)) || slugifySegment(seg);
 
-  const segmentMap = new Map([
-  ["3-npcs","3-np-cs"],
-
-  // replace "&" with "and" for folder slugs your site emits
-  ["between-astra-terra","between-astra-and-terra"],
-
-  // if your build lowercases everything (already handled), add more as needed:
-  // ["thespians","thespians"] // (example placeholder)
-]);
-
-
-  // Build a site URL from an Obsidian vault path to a note (no /notes prefix)
+  // Fallback builder when manifest cannot resolve
   function noteUrlFromVaultPath(vaultPath) {
     if (!vaultPath) return null;
     if (isImagePath(vaultPath)) return null;
@@ -54,14 +46,13 @@
     return "/img/user/Images/" + encodePath(stripped);
   }
 
-  // Robust fallbacks: multiple locations, case and extension variants
+  // Robust fallbacks for image nodes
   function imageCandidatesFromVaultPath(vaultPath) {
     if (!vaultPath) return [];
     const stripped = vaultPath.replace(/^Images\//i, "");
     const enc = encodePath(stripped);
     const lowerEnc = enc.toLowerCase();
 
-    // split base/ext
     const m = /^(.*?)(\.[^.]+)?$/.exec(stripped);
     const base = m[1] || stripped;
     const ext = (m[2] || "").toLowerCase();
@@ -75,7 +66,7 @@
     const prefixes = [
       "/img/user/Images/",
       "/img/user/images/",
-      "/img/", // just in case images ended up directly under /img
+      "/img/",
     ];
 
     const bases = Array.from(new Set([base, base.toLowerCase()]));
@@ -89,7 +80,6 @@
       }
     }
 
-    // Also include the raw encodings
     candidates.push(
       "/img/user/Images/" + enc,
       "/img/user/images/" + enc,
@@ -136,8 +126,8 @@
     const raw = title.replace(/\.[^.]+$/, "");
     const variants = Array.from(new Set([
       raw,
-      raw.replace(/[,()]/g, "").replace(/\s+/g, " ").trim(),      // remove punctuation
-      raw.replace(/\s+/g, " "),                                    // collapse spaces
+      raw.replace(/[,()]/g, "").replace(/\s+/g, " ").trim(),
+      raw.replace(/\s+/g, " "),
     ]));
     const exts = [".png", ".jpg", ".jpeg", ".PNG", ".JPG", ".JPEG"];
     const cands = [];
@@ -148,6 +138,141 @@
       }
     }
     return cands;
+  }
+
+  // -------- Manifest loading & indexing --------
+  let ManifestIndex = null; // built form
+
+  async function loadManifest() {
+    try {
+      const resp = await fetch("/page-manifest.json", { credentials: "same-origin" });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const man = await resp.json();
+      ManifestIndex = indexManifest(man);
+      // expose for debugging
+      window.__PageManifestIndex = ManifestIndex;
+    } catch (e) {
+      console.warn("Could not load /page-manifest.json; will use slug fallback.", e);
+      ManifestIndex = { entries: [], byKey: new Map() };
+    }
+  }
+
+  // Accepts either an array of entries or an object map.
+  // Tries to extract {url, filePathStem, inputPath, source, title}
+  function indexManifest(man) {
+    const entries = [];
+
+    const pushEntry = (obj) => {
+      if (!obj) return;
+      const url = obj.url || obj.href || obj.permalink || null;
+      const filePathStem = obj.filePathStem || obj.filepathStem || obj.stem || null;
+      const inputPath = obj.inputPath || obj.input || obj.pageInputPath || obj.source || null;
+      const source = obj.sourcePath || obj.page?.inputPath || obj.data?.page?.inputPath || null;
+      const title = obj.title || obj.data?.title || null;
+
+      const entry = { url, filePathStem, inputPath, source, title, raw: obj };
+      if (entry.url || entry.filePathStem || entry.inputPath || entry.source) {
+        entries.push(entry);
+      }
+    };
+
+    if (Array.isArray(man)) {
+      man.forEach(pushEntry);
+    } else if (man && typeof man === "object") {
+      // If it's a dictionary, the values might be entries
+      Object.values(man).forEach(pushEntry);
+    }
+
+    // Build key map with a bunch of lookup keys
+    const byKey = new Map();
+
+    const addKey = (k, entry) => {
+      if (!k) return;
+      const key = String(k).trim();
+      if (!key) return;
+      if (!byKey.has(key)) byKey.set(key, []);
+      byKey.get(key).push(entry);
+    };
+
+    for (const e of entries) {
+      // direct keys
+      addKey(e.url, e);
+      addKey(e.filePathStem, e);
+      addKey(e.inputPath, e);
+      addKey(e.source, e);
+
+      // normalized variants
+      const norm = (s) => String(s || "").replace(/^\.?\/*/, "").toLowerCase();
+      const stem = e.filePathStem ? e.filePathStem.replace(/^\/*/, "") : "";
+      addKey(norm(stem), e);              // "2-locations/terra/terra"
+      addKey("/" + norm(stem), e);        // "/2-locations/terra/terra"
+      addKey(norm(e.inputPath), e);
+      addKey(norm(e.source), e);
+
+      // also store last 2–3 segments for fuzzy lookups
+      const segs = (stem || "").split("/").filter(Boolean);
+      const last2 = segs.slice(-2).join("/");
+      const last3 = segs.slice(-3).join("/");
+      addKey(norm(last2), e);
+      addKey(norm(last3), e);
+    }
+
+    return { entries, byKey };
+  }
+
+  // Resolve a canvas markdown path via manifest
+  function resolveUrlFromManifest(canvasPath) {
+    if (!ManifestIndex) return null;
+    const { byKey } = ManifestIndex;
+
+    const raw = String(canvasPath || "");
+    const noMd = raw.replace(/\.md$/i, "");
+    const lcNoMd = noMd.toLowerCase();
+
+    const norm = (s) => String(s || "").replace(/^\.?\/*/, "").toLowerCase();
+    const parts = norm(noMd).split("/").filter(Boolean);
+
+    // filePathStem-ish candidate (slugified segments)
+    const stemCandidate = "/" + parts.map(slugifySegment).join("/");
+
+    // try a bunch of keys in priority order
+    const candidates = [
+      raw,
+      noMd,
+      lcNoMd,
+      norm(raw),
+      norm(noMd),
+      stemCandidate,                  // "/2-locations/terra/terra"
+      stemCandidate.replace(/^\//, ""), // "2-locations/terra/terra"
+    ];
+
+    // also try last-2 and last-3 segments
+    const last2 = parts.slice(-2).join("/");
+    const last3 = parts.slice(-3).join("/");
+    if (last3) candidates.push(last3, norm(last3));
+    if (last2) candidates.push(last2, norm(last2));
+
+    for (const key of candidates) {
+      const arr = byKey.get(String(key).trim());
+      if (arr && arr.length) {
+        // prefer entries that actually have a URL
+        const withUrl = arr.find(e => !!e.url) || arr[0];
+        return withUrl.url || null;
+      }
+    }
+
+    // as a last resort, try contains-search on entries (expensive but rare)
+    for (const e of ManifestIndex.entries) {
+      if (
+        (e.filePathStem && lcNoMd.endsWith(String(e.filePathStem).toLowerCase())) ||
+        (e.inputPath && lcNoMd.endsWith(String(e.inputPath).toLowerCase())) ||
+        (e.source && lcNoMd.endsWith(String(e.source).toLowerCase()))
+      ) {
+        return e.url || null;
+      }
+    }
+
+    return null;
   }
 
   // --- HTML scraping helpers for enrichment ---
@@ -167,15 +292,12 @@
   }
 
   function firstImageUrl(doc, pageUrl) {
-    // 1) Open Graph / meta
     const og = doc.querySelector('meta[property="og:image"], meta[name="og:image"]');
     if (og && og.content) return new URL(og.content, pageUrl).href;
 
-    // 2) preload link
     const pre = doc.querySelector('link[rel="preload"][as="image"][href]');
     if (pre) return new URL(pre.getAttribute("href"), pageUrl).href;
 
-    // 3) content images
     const IMG_SELECTORS = [
       "main img", "article img", ".content img", ".prose img",
       ".markdown-rendered img", ".markdown-body img", ".post img",
@@ -185,14 +307,12 @@
       const img = doc.querySelector(sel);
       if (!img) continue;
 
-      // srcset first
       const srcset = img.getAttribute("srcset");
       if (srcset) {
         const first = srcset.split(",")[0].trim().split(/\s+/)[0];
         if (first) return new URL(first, pageUrl).href;
       }
 
-      // common lazy attrs
       const lazySrc = img.getAttribute("data-src") || img.getAttribute("data-lazy-src") || img.getAttribute("data-original");
       if (lazySrc) return new URL(lazySrc, pageUrl).href;
 
@@ -203,9 +323,7 @@
     return "";
   }
 
-  // Simple cache so we don't re-fetch the same page
   const pageCache = new Map();
-
   async function fetchPageInfo(url) {
     if (pageCache.has(url)) return pageCache.get(url);
     const p = (async () => {
@@ -254,7 +372,7 @@
             imageCandidates: imageCandidatesFromVaultPath(f)
           });
         } else {
-          // Note card (Markdown). Start with clean breadcrumb; enrich later via fetch.
+          // Markdown note card. Build a clean breadcrumb; URL resolved via manifest later.
           const parts = f.replace(/\.md$/i, "").split("/");
           const title = parts.pop();
           const crumb = parts.length ? parts.join(" › ") : "";
@@ -262,9 +380,9 @@
             ...common,
             title,
             description: crumb,
-            link: noteUrlFromVaultPath(f),
-            _needsEnrich: true,
-            // name-based guesses help NPCs with matching image filenames
+            _canvasPath: f,                 // keep original path for manifest lookup
+            _needsManifestResolve: true,    // mark for manifest resolution
+            _needsEnrich: true,             // then enrichment
             _nameGuesses: nameBasedImageCandidates(title)
           });
         }
@@ -286,7 +404,19 @@
     return { items, edges };
   }
 
-  // --------- enrichment: fetch built HTML of notes to pull first image + teaser text
+  // Resolve all Markdown notes via manifest; then attach .link
+  function resolveNotesViaManifest(appInstance) {
+    const items = appInstance.data.items || [];
+    for (const it of items) {
+      if (!it._needsManifestResolve) continue;
+      const url = resolveUrlFromManifest(it._canvasPath);
+      it.link = url || noteUrlFromVaultPath(it._canvasPath); // fallback if manifest misses
+      delete it._needsManifestResolve;
+    }
+    appInstance.render();
+  }
+
+  // Enrichment (first image + teaser) using real URL
   async function enrichNotesFromHtml(appInstance) {
     const items = appInstance.data.items || [];
     const toEnrich = items.filter(it => it._needsEnrich && it.link);
@@ -309,39 +439,25 @@
           });
         }
       };
-      
-// add a visible "NO CONTENT" badge on enrichment failure
-function markCardNoContent(id, title) {
-  const el = [...document.querySelectorAll('.card')].find(n => n && n._itemId === id);
-  if (!el) return;
-  const badge = document.createElement('div');
-  badge.textContent = 'ENR 404';
-  badge.style.cssText = 'position:absolute;top:8px;left:8px;background:#555;color:#fff;font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px;';
-  el.appendChild(badge);
-}
 
       const fetchNote = async (item) => {
         try {
           const info = await fetchPageInfo(item.link);
 
-          // Merge image candidates: page image (if any) + name guesses + existing
           const cands = [];
           if (info.image) cands.push(info.image);
           if (Array.isArray(item._nameGuesses)) cands.push(...item._nameGuesses);
           if (Array.isArray(item.imageCandidates)) cands.push(...item.imageCandidates);
           item.imageCandidates = Array.from(new Set(cands));
 
-          // Description: keep breadcrumb, add teaser if present
           if (info.teaser) {
             item.description = item.description
               ? `${item.description}\n${info.teaser}`
               : info.teaser;
           }
 
-          // reflect changes on screen
           appInstance.render();
         } catch (err) {
-          // leave the card usable even if enrichment fails
           console.warn("Enrich failed for", item.link, err);
         } finally {
           delete item._needsEnrich;
@@ -362,22 +478,32 @@ function markCardNoContent(id, title) {
   // ---------- boot ----------
   (async () => {
     try {
-      // Load your Obsidian canvas JSON (placed in src/site/canvas/)
+      // 1) Load manifest first
+      await loadManifest();
+
+      // 2) Load your Obsidian canvas JSON (placed in src/site/canvas/)
       const jsonCanvas = await loadJsonCanvas("tir.canvas.json");
       const data = adaptJsonCanvas(jsonCanvas);
 
-      // Initial render (fast)
+      // 3) Initial render
       app.setData(data);
 
-      // Progressive enrichment (fetch first image + paragraph for note cards)
+      // 4) Resolve Markdown note URLs via manifest
+      resolveNotesViaManifest(app);
+
+      // 5) Progressive enrichment (fetch first image + paragraph for note cards)
       await enrichNotesFromHtml(app);
     } catch (err) {
-      console.error("Failed to load/enrich canvas:", err);
+      console.error("Failed to load/enrich canvas with manifest:", err);
       app.setData({ items: [] });
     }
 
-    document.getElementById('btn-reset').addEventListener('click', () => app.resetView());
-    document.getElementById('btn-save').addEventListener('click', () => {
+    // Buttons (if present)
+    const resetBtn = document.getElementById('btn-reset');
+    if (resetBtn) resetBtn.addEventListener('click', () => app.resetView());
+
+    const saveBtn = document.getElementById('btn-save');
+    if (saveBtn) saveBtn.addEventListener('click', () => {
       const data = app.getData();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
