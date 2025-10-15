@@ -21,7 +21,6 @@
 
   const encodePath = (p) => p.split("/").map((seg) => encodeURIComponent(seg)).join("/");
 
-  // Fallback builder when manifest cannot resolve
   function noteUrlFromVaultPath(vaultPath) {
     if (!vaultPath || isImagePath(vaultPath)) return null;
     const withoutExt = vaultPath.replace(/\.md$/i, "");
@@ -172,7 +171,6 @@
       addKey(norm(e.inputPath), e);
       addKey(norm(e.source), e);
 
-      // Title-based lookup
       if (e.title) {
         const tslug = slugifySegment(e.title);
         if (tslug) {
@@ -181,7 +179,6 @@
         }
       }
 
-      // last 2–3 segments
       const segs = (stem || "").split("/").filter(Boolean);
       const last2 = segs.slice(-2).join("/");
       const last3 = segs.slice(-3).join("/");
@@ -206,7 +203,6 @@
     const rawParts = lc.split("/").filter(Boolean);
     const slugParts = rawParts.map(slugifySegment);
 
-    // 3. npcs → 3-np-cs (common in your build)
     if (slugParts[0] === "3-npcs" || slugParts[0] === "3--npcs") slugParts[0] = "3-np-cs";
 
     const stemCandidate = "/" + slugParts.join("/");
@@ -243,12 +239,10 @@
     return Array.from(cands);
   }
 
-  // Resolve a canvas markdown path via manifest (now includes title fallback)
   function resolveUrlFromManifest(canvasPath) {
     if (!ManifestIndex) return null;
     const { byKey, byTitleSlug } = ManifestIndex;
 
-    // try key-based matches
     const candidates = manifestCandidatesFromCanvasPath(canvasPath);
     for (const key of candidates) {
       const arr = byKey.get(String(key).trim());
@@ -258,14 +252,12 @@
       }
     }
 
-    // title-based fallback: compare last segment to titles
     const lastSeg = slugifySegment(normalizeCanvasPath(canvasPath).split("/").pop());
     if (lastSeg && byTitleSlug.has(lastSeg)) {
       const hit = byTitleSlug.get(lastSeg).find(e => !!e.url) || byTitleSlug.get(lastSeg)[0];
       if (hit) return hit.url || null;
     }
 
-    // very last resort: suffix match over entries
     const lcNoMd = normalizeCanvasPath(canvasPath).toLowerCase();
     for (const e of ManifestIndex.entries) {
       if (
@@ -283,7 +275,9 @@
   function firstNonEmptyParagraph(doc) {
     const P_SELECTORS = [
       "main p", "article p", ".content p", ".prose p",
-      ".markdown-rendered p", ".markdown-body p", ".post p", "#content p", "p"
+      ".markdown-rendered p", ".markdown-body p", ".post p",
+      "#content p", ".page-content p", ".post-content p",
+      ".entry-content p", ".document p", ".note-content p", "p"
     ];
     for (const sel of P_SELECTORS) {
       const ps = doc.querySelectorAll(sel);
@@ -305,7 +299,8 @@
     const IMG_SELECTORS = [
       "main img", "article img", ".content img", ".prose img",
       ".markdown-rendered img", ".markdown-body img", ".post img",
-      "#content img", ".page img", "img"
+      "#content img", ".page img", ".page-content img",
+      ".entry-content img", ".note-content img", "figure img", "img"
     ];
     for (const sel of IMG_SELECTORS) {
       const img = doc.querySelector(sel);
@@ -326,15 +321,45 @@
     return "";
   }
 
+  // ---- Robust page fetch with URL variants (fixes ENR404) ----
+  async function tryFetch(url) {
+    const variants = [];
+    const u = new URL(url, location.origin);
+    const base = u.pathname;
+
+    const withSlash = base.endsWith("/") ? base : base + "/";
+    const withoutSlash = base.endsWith("/") ? base.slice(0, -1) : base;
+
+    variants.push(withSlash);
+    variants.push(withoutSlash);
+    variants.push(withSlash + "index.html");
+    variants.push(withSlash + "index.htm");
+
+    for (const path of variants) {
+      const full = new URL(path, location.origin).toString();
+      try {
+        const resp = await fetch(full, { credentials: "same-origin" });
+        if (resp.ok) {
+          const html = await resp.text();
+          return { ok: true, url: full, html };
+        }
+      } catch (_) {}
+    }
+    return { ok: false, url: url, html: "" };
+  }
+
   const pageCache = new Map();
   async function fetchPageInfo(url) {
     if (pageCache.has(url)) return pageCache.get(url);
     const p = (async () => {
-      const resp = await fetch(url, { credentials: "same-origin" });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${url}`);
-      const html = await resp.text();
-      const doc = new DOMParser().parseFromString(html, "text/html");
-      return { image: firstImageUrl(doc, url), teaser: firstNonEmptyParagraph(doc) };
+      const attempt = await tryFetch(url);
+      if (!attempt.ok) throw new Error(`ENR404 ${url}`);
+      const doc = new DOMParser().parseFromString(attempt.html, "text/html");
+      return {
+        finalUrl: attempt.url,
+        image: firstImageUrl(doc, attempt.url),
+        teaser: firstNonEmptyParagraph(doc),
+      };
     })();
     pageCache.set(url, p);
     return p;
@@ -447,6 +472,15 @@
         }
       };
 
+      const addBadge = (id, text, css) => {
+        const el = [...document.querySelectorAll('.card')].find(n => n._itemId === id);
+        if (!el) return;
+        const b = document.createElement('div');
+        b.textContent = text;
+        b.style.cssText = css;
+        el.appendChild(b);
+      };
+
       const fetchNote = async (item) => {
         try {
           const info = await fetchPageInfo(item.link);
@@ -463,17 +497,16 @@
               : info.teaser;
           }
 
+          // If fetch ok but no teaser and no image, surface as NO CONTENT
+          if ((!info.teaser || !info.teaser.trim()) &&
+              (!item.imageCandidates || item.imageCandidates.length === 0)) {
+            addBadge(item.id, 'NO CONTENT', 'position:absolute;top:8px;left:8px;background:#7f8c8d;color:#fff;font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px;');
+          }
+
           appInstance.render();
         } catch (err) {
           console.warn("Enrich failed for", item.link, err);
-          // visible badge on enrichment failure
-          const el = [...document.querySelectorAll('.card')].find(n => n._itemId === item.id);
-          if (el) {
-            const b = document.createElement('div');
-            b.textContent = 'ENR 404';
-            b.style.cssText = 'position:absolute;top:8px;left:8px;background:#555;color:#fff;font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px;';
-            el.appendChild(b);
-          }
+          addBadge(item.id, 'ENR 404', 'position:absolute;top:8px;left:8px;background:#555;color:#fff;font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px;');
         } finally {
           delete item._needsEnrich;
           delete item._nameGuesses;
