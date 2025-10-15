@@ -1,66 +1,70 @@
 :root {
-  /* nothing here; inherit from site theme */
+  --bg: #0f1020;
+  --grid: #1b1d36;
+  --card: #17192b;
+  --card-border: #2a2d4a;
+  --card-text: #e7e9ff;
+  --accent: #7aa2ff;
 }
 
-#canvas-container {
-  --card-bg: var(--background-primary, #111);
-  --card-border: var(--background-modifier-border, #2a2a2a);
-  --text: var(--text-normal, #e5e7eb);
-  --muted: var(--text-muted, #9ca3af);
-  --accent: var(--interactive-accent, #6366f1);
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--card-text); }
 
-  position: relative;
-  height: calc(100vh - 8rem);
+.toolbar {
+  position: fixed; inset: 12px auto auto 12px;
+  display: flex; gap: 8px; align-items: center;
+  background: rgba(15,16,32,0.8); backdrop-filter: blur(6px);
+  border: 1px solid #222547; border-radius: 12px;
+  padding: 8px 10px; z-index: 10;
+}
+
+.toolbar .spacer { width: 16px; display: inline-block; }
+
+.toolbar button {
+  background: var(--card);
+  color: var(--card-text);
   border: 1px solid var(--card-border);
-  border-radius: 12px;
-  background: var(--background-secondary, #0b0b0b);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.toolbar button:hover { border-color: var(--accent); }
+
+#canvas-container {
+  position: absolute; inset: 0;
+  overflow: hidden; cursor: grab;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.03), transparent 400px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0/40px 40px,
+    linear-gradient(0deg, var(--grid) 1px, transparent 1px) 0 0/40px 40px;
+}
+#canvas-container.panning { cursor: grabbing; }
+
+#world {
+  position: absolute; left: 0; top: 0;
+  transform-origin: 0 0;
 }
 
 .card {
   position: absolute;
-  max-width: 360px;
-  background: var(--card-bg);
-  color: var(--text);
+  min-width: 180px; max-width: 320px;
+  padding: 10px 12px;
   border: 1px solid var(--card-border);
+  background: var(--card);
   border-radius: 12px;
-  padding: 12px;
-  box-shadow: 0 4px 20px rgb(0 0 0 / 20%);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  user-select: none;
 }
 
-.card h3 { 
-  margin: 6px 0 6px;
-  font-size: 1rem;
-  line-height: 1.25;
+.card h3 {
+  margin: 0 0 6px 0; font-size: 16px; color: #cfd6ff;
 }
-.card h3 a {
-  color: var(--text);
-  text-decoration: none;
-  border-bottom: 1px dotted var(--muted);
-}
-.card h3 a:hover {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
+.card p { margin: 0; font-size: 14px; line-height: 1.35; color: #bcc3ff; }
 
-.drag-handle {
-  position: absolute; inset: 6px auto auto 6px;
-  width: 14px; height: 14px; border-radius: 3px;
-  background: var(--accent);
-  opacity: .25;
-  cursor: grab;
+.card .drag-handle {
+  position: absolute; inset: -6px -6px auto auto;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent); opacity: 0.9;
+  cursor: grab; box-shadow: 0 4px 10px rgba(122,162,255,.4);
 }
-.card.dragging .drag-handle { cursor: grabbing; opacity: .5; }
-
-.toolbar {
-  position: absolute; right: 12px; top: 12px;
-  display: flex; gap: 8px; align-items: center;
-  background: var(--background-secondary, #0b0b0b);
-  border: 1px solid var(--card-border);
-  border-radius: 999px;
-  padding: 6px 10px;
-  color: var(--muted);
-}
-.toolbar button {
-  background: var(--accent); color: #fff; border: 0; border-radius: 999px;
-  padding: 6px 10px; font: inherit; cursor: pointer;
-}
+.card.dragging .drag-handle { cursor: grabbing; }
