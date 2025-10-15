@@ -80,10 +80,26 @@ class CanvasApp {
     el._modelPos = { left: item.x, top: item.y };
     el._drag = null;
 
+    // Optional image banner
+    const imgHtml = item.image
+      ? `<div style="margin:-6px -6px 8px -6px; overflow:hidden; border-radius:10px;">
+           <img src="${this._escape(item.image)}" alt="" style="display:block; max-width:100%; height:auto;" />
+         </div>`
+      : '';
+
+    // Title (clickable if link present)
+    const safeTitle = this._escape(item.title || 'Untitled');
+    const titleHtml = item.link
+      ? `<h3><a href="${this._escape(item.link)}" target="_blank" rel="noopener">${safeTitle}</a></h3>`
+      : `<h3>${safeTitle}</h3>`;
+
+    const safeDesc = this._escape(item.description || '');
+
     el.innerHTML = `
       <div class="drag-handle" title="Drag"></div>
-      <h3>${this._escape(item.title)}</h3>
-      <p>${this._escape(item.description || '')}</p>
+      ${imgHtml}
+      ${titleHtml}
+      ${safeDesc ? `<p>${safeDesc}</p>` : ``}
     `;
 
     const handle = el.querySelector('.drag-handle');
