@@ -80,10 +80,21 @@ class CanvasApp {
     el._modelPos = { left: item.x, top: item.y };
     el._drag = null;
 
-    // Optional image banner
-    const imgHtml = item.image
+    // Prepare image candidates (fallback chain)
+    const candidates = Array.isArray(item.imageCandidates) && item.imageCandidates.length
+      ? item.imageCandidates.slice()
+      : (item.image ? [item.image] : []);
+
+    // Optional image banner with fallback
+    const imgHtml = candidates.length
       ? `<div style="margin:-6px -6px 8px -6px; overflow:hidden; border-radius:10px;">
-           <img src="${this._escape(item.image)}" alt="" style="display:block; max-width:100%; height:auto;" />
+           <img
+             data-role="card-img"
+             src="${this._escape(candidates[0])}"
+             alt=""
+             decoding="async"
+             loading="lazy"
+             style="display:block; max-width:100%; height:auto;" />
          </div>`
       : '';
 
@@ -101,6 +112,18 @@ class CanvasApp {
       ${titleHtml}
       ${safeDesc ? `<p>${safeDesc}</p>` : ``}
     `;
+
+    // Image fallback handler (rotate through candidates on error)
+    if (candidates.length) {
+      const imgEl = el.querySelector('img[data-role="card-img"]');
+      let idx = 0;
+      imgEl.addEventListener('error', () => {
+        if (idx + 1 < candidates.length) {
+          idx += 1;
+          imgEl.src = candidates[idx];
+        }
+      });
+    }
 
     const handle = el.querySelector('.drag-handle');
     handle.addEventListener('mousedown', (e) => {
