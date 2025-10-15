@@ -11,14 +11,10 @@
   function slugifySegment(seg) {
     return String(seg || "")
       .trim()
-      // remove dots used as section markers like "3. NPCs"
-      .replace(/\./g, " ")
-      // collapse non-letters/digits to hyphen
-      .replace(/[^\p{L}\p{N}]+/gu, "-")
-      // collapse multiple hyphens
-      .replace(/-+/g, "-")
-      // trim hyphens
-      .replace(/^-|-$/g, "")
+      .replace(/\./g, " ")                 // "3. NPCs" → "3 NPCs"
+      .replace(/[^\p{L}\p{N}]+/gu, "-")    // spaces/punct → hyphen
+      .replace(/-+/g, "-")                 // collapse hyphens
+      .replace(/^-|-$/g, "")               // trim hyphens
       .toLowerCase();
   }
 
@@ -26,11 +22,7 @@
   const segmentMap = new Map([
     ["3-npcs", "3-np-cs"],
   ]);
-
-  function mapSegment(seg) {
-    const s = slugifySegment(seg);
-    return segmentMap.get(s) || s;
-  }
+  const mapSegment = (seg) => segmentMap.get(slugifySegment(seg)) || slugifySegment(seg);
 
   // Build a site URL from an Obsidian vault path to a note (no /notes prefix)
   function noteUrlFromVaultPath(vaultPath) {
@@ -44,39 +36,68 @@
     return "/" + parts.join("/") + "/";
   }
 
-  // 2) Map Obsidian “Images/...” → your public path (preferred)
+  // Preferred mapping: Obsidian “Images/…” → /img/user/Images/… (URL-encoded)
   function imageUrlFromVaultPath(vaultPath) {
     if (!vaultPath) return null;
-    // Strip a leading "Images/" (Obsidian vault style)
     const stripped = vaultPath.replace(/^Images\//i, "");
-    // Served from: src/site/img/user/Images -> /img/user/Images
     return "/img/user/Images/" + encodeURI(stripped);
   }
 
-  // 3) Optional fallbacks: try multiple public locations automatically
+  // Robust fallbacks: try multiple public locations and case variants
   function imageCandidatesFromVaultPath(vaultPath) {
+    if (!vaultPath) return [];
     const stripped = vaultPath.replace(/^Images\//i, "");
     const enc = encodeURI(stripped);
-    return [
-      "/img/user/Images/" + enc,  // preferred (from passthrough above)
-      "/img/Images/" + enc,       // if you publish here instead
-      "/canvas/Images/" + enc     // if you dropped them next to the app
+
+    // Also try a lowercase path variant in case of case-mismatch in publishing
+    const lowerEnc = enc.toLowerCase();
+
+    const cands = [
+      "/img/user/Images/" + enc,       // preferred (your repo path)
+      "/img/user/images/" + enc,       // same but folder lowercased
+      "/img/user/Images/" + lowerEnc,  // lowercased filename
+      "/img/user/images/" + lowerEnc,  // both folders+file lowercased
+      "/img/Images/" + enc,            // optional alt publish
+      "/canvas/Images/" + enc          // if you ever drop next to app
     ];
+
+    // De-dup
+    return Array.from(new Set(cands));
+  }
+
+  // Extract embedded image wikilinks from text, e.g. "![[Abigail Teach.png]]"
+  function extractEmbeddedImages(markdownishText) {
+    const text = String(markdownishText || "");
+    const regex = /!\[\[([^|\]]+)(?:\|[^]]*)?\]\]/g;
+    const files = [];
+    let m;
+    while ((m = regex.exec(text)) !== null) {
+      // m[1] is the path or filename. If no folder, assume under "Images/"
+      let f = m[1].trim();
+      if (!/[\/\\]/.test(f)) f = "Images/" + f; // filename only → Images/<file>
+      files.push(f);
+    }
+    return files;
+  }
+
+  // Remove the embedded image syntax from description for cleaner display
+  function stripEmbeddedImages(markdownishText) {
+    return String(markdownishText || "").replace(/!\[\[[^\]]+\]\]/g, "").trim();
+  }
+
+  // Use first Markdown heading as title, rest as description
+  function extractTitleAndDesc(markdownishText) {
+    const text = String(markdownishText || "");
+    const lines = text.split(/\r?\n/);
+    const first = (lines[0] || "").replace(/^#+\s*/, "").trim();
+    const rest = lines.slice(1).join("\n").trim();
+    return { title: first || "Text", desc: rest };
   }
 
   // Convert Obsidian JSON Canvas -> viewer data
   function adaptJsonCanvas(jsonCanvas) {
     const items = [];
     const edges = [];
-
-    // Turn the first Markdown heading into a nicer title (optional)
-    function extractTitleAndDesc(markdownishText) {
-      const text = String(markdownishText || "");
-      const lines = text.split(/\r?\n/);
-      const first = (lines[0] || "").replace(/^#+\s*/, "").trim();
-      const rest = lines.slice(1).join("\n").trim();
-      return { title: first || "Text", desc: rest };
-    }
 
     for (const n of jsonCanvas.nodes || []) {
       const common = {
@@ -86,8 +107,16 @@
       };
 
       if (n.type === "text") {
-        const { title, desc } = extractTitleAndDesc(n.text);
-        items.push({ ...common, title, description: desc });
+        // Parse embeds like ![[Abigail Teach.png]]
+        const embeds = extractEmbeddedImages(n.text);
+        const { title, desc } = extractTitleAndDesc(stripEmbeddedImages(n.text));
+
+        const item = { ...common, title, description: desc };
+        if (embeds.length) {
+          // Attach candidates for the FIRST embedded image
+          item.imageCandidates = imageCandidatesFromVaultPath(embeds[0]);
+        }
+        items.push(item);
         continue;
       }
 
@@ -98,10 +127,7 @@
             ...common,
             title: f.split("/").pop().replace(/\.[^.]+$/, ""),
             description: "",
-            // use candidate fallbacks instead of a single URL
             imageCandidates: imageCandidatesFromVaultPath(f)
-            // (you can also keep a single preferred URL if you want)
-            // image: imageUrlFromVaultPath(f)
           });
         } else {
           items.push({
