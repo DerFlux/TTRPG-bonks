@@ -5,23 +5,6 @@ const crypto = require("crypto");
 const {globSync} = require("glob");
 
 const themeCommentRegex = /\/\*[\s\S]*?\*\//g;
-
-async function getTheme() {
-  let themeUrl = process.env.THEME;
-  if (themeUrl) {
-    //https://forum.obsidian.md/t/1-0-theme-migration-guide/42537
-    //Not all themes with no legacy mark have a theme.css file, so we need to check for it
-    try {
-      await axios.get(themeUrl);
-    } catch {
-      if (themeUrl.indexOf("theme.css") > -1) {
-        themeUrl = themeUrl.replace("theme.css", "obsidian.css");
-      } else if (themeUrl.indexOf("obsidian.css") > -1) {
-        themeUrl = themeUrl.replace("obsidian.css", "theme.css");
-      }
-    }
-  // after you compute the chosen theme path (e.g., _theme.dark.hash.css),
-  // copy it to ./src/site/styles/theme.css
     
     const fs = require('fs');
     const path = require('path');
