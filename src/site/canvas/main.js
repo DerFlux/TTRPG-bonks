@@ -220,48 +220,89 @@
     return { entries, byKey };
   }
 
-  // Resolve a canvas markdown path via manifest
+  // ----- NEW: smarter candidate generation for manifest lookups -----
+  function normalizeCanvasPath(p) {
+    return String(p || "")
+      .replace(/\\/g, "/")
+      .replace(/^\.?\/*/, "")
+      .replace(/\.md$/i, "")
+      .trim();
+  }
+
+  function manifestCandidatesFromCanvasPath(canvasPath) {
+    const base = normalizeCanvasPath(canvasPath);
+    const lc = base.toLowerCase();
+
+    // Split into segments for transformations
+    const rawParts = lc.split("/").filter(Boolean);
+
+    // Apply Eleventy-ish slugify per segment
+    const slugParts = rawParts.map(slugifySegment);
+
+    // Known folder rename (e.g., "3. npcs" -> "3-np-cs")
+    const correctedParts = slugParts.map((seg, i) => {
+      if (i === 0 && (seg === "3-npcs" || seg === "3--npcs")) return "3-np-cs";
+      return seg;
+    });
+
+    const stemCandidate = "/" + correctedParts.join("/");
+
+    // Also build variants that strip punctuation aggressively from last segment
+    const last = rawParts[rawParts.length - 1] || "";
+    const lastNoPunct = last.replace(/[(),]/g, "").replace(/\s+/g, " ").trim();
+    const altLast = slugifySegment(lastNoPunct);
+    const altStemCandidate =
+      "/" + correctedParts.slice(0, -1).concat([altLast]).join("/");
+
+    const cands = new Set([
+      base,                 // "3. npcs/avalon/mythra crepus"
+      lc,                   // lowercased
+      stemCandidate,        // "/3-np-cs/avalon/mythra-crepus"
+      stemCandidate.slice(1),
+      altStemCandidate,     // "/3-np-cs/avalon/vavel-the-black-dragon" (no comma)
+      altStemCandidate.slice(1),
+    ]);
+
+    // last-2 and last-3 segments (raw + slug)
+    const last2Raw = rawParts.slice(-2).join("/");
+    const last3Raw = rawParts.slice(-3).join("/");
+    if (last2Raw) {
+      cands.add(last2Raw);
+      cands.add(slugifySegment(rawParts[rawParts.length - 2]) + "/" + slugifySegment(rawParts[rawParts.length - 1]));
+    }
+    if (last3Raw) {
+      cands.add(last3Raw);
+      cands.add(
+        slugifySegment(rawParts[rawParts.length - 3]) + "/" +
+        slugifySegment(rawParts[rawParts.length - 2]) + "/" +
+        slugifySegment(rawParts[rawParts.length - 1])
+      );
+    }
+
+    // Common punctuation and & → and normalization on whole path
+    cands.add(
+      lc.replace(/[(),]/g, "").replace(/&/g, "and").replace(/\s+/g, "-")
+    );
+
+    return Array.from(cands);
+  }
+
+  // Resolve a canvas markdown path via manifest (using the new candidates)
   function resolveUrlFromManifest(canvasPath) {
     if (!ManifestIndex) return null;
     const { byKey } = ManifestIndex;
 
-    const raw = String(canvasPath || "");
-    const noMd = raw.replace(/\.md$/i, "");
-    const lcNoMd = noMd.toLowerCase();
-
-    const norm = (s) => String(s || "").replace(/^\.?\/*/, "").toLowerCase();
-    const parts = norm(noMd).split("/").filter(Boolean);
-
-    // filePathStem-ish candidate (slugified segments)
-    const stemCandidate = "/" + parts.map(slugifySegment).join("/");
-
-    // try a bunch of keys in priority order
-    const candidates = [
-      raw,
-      noMd,
-      lcNoMd,
-      norm(raw),
-      norm(noMd),
-      stemCandidate,                  // "/2-locations/terra/terra"
-      stemCandidate.replace(/^\//, ""), // "2-locations/terra/terra"
-    ];
-
-    // also try last-2 and last-3 segments
-    const last2 = parts.slice(-2).join("/");
-    const last3 = parts.slice(-3).join("/");
-    if (last3) candidates.push(last3, norm(last3));
-    if (last2) candidates.push(last2, norm(last2));
-
+    const candidates = manifestCandidatesFromCanvasPath(canvasPath);
     for (const key of candidates) {
       const arr = byKey.get(String(key).trim());
       if (arr && arr.length) {
-        // prefer entries that actually have a URL
         const withUrl = arr.find(e => !!e.url) || arr[0];
         return withUrl.url || null;
       }
     }
 
-    // as a last resort, try contains-search on entries (expensive but rare)
+    // last resort: suffix match
+    const lcNoMd = normalizeCanvasPath(canvasPath).toLowerCase();
     for (const e of ManifestIndex.entries) {
       if (
         (e.filePathStem && lcNoMd.endsWith(String(e.filePathStem).toLowerCase())) ||
@@ -271,7 +312,6 @@
         return e.url || null;
       }
     }
-
     return null;
   }
 
