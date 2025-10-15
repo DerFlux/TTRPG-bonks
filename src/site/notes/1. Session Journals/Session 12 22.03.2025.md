@@ -33,7 +33,7 @@ Beasts of [[2. Locations/Astra/The Northern Lands/Leones/Leones\|Leones]]
 
 Some other spies got caught and we fought Midgard warriors and priestesses who turned out to be [[3. NPCs/Thespians/Adlibs\|Adlibs]] and [[3. NPCs/Thespians/Quovadis\|Quovadis]].
 
-These were the team-mates (The blossom blizards/[[3. NPCs/Sakura Fubuki\|Sakura Fubuki]])
+These were the team-mates (The blossom blizards/[[3. NPCs/Avalon/Sakura Fubuki\|Sakura Fubuki]])
 [[3. NPCs/Avalon/Hikoboshi Koi\|Hikoboshi Koi]]
 
 

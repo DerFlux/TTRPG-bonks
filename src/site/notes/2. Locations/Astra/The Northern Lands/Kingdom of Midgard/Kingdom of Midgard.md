@@ -2,7 +2,7 @@
 {"dg-publish":true,"permalink":"/2-locations/astra/the-northern-lands/kingdom-of-midgard/kingdom-of-midgard/"}
 ---
 
-# 
+
 Cooperating of [[3. NPCs/Thespians/Thespians\|Thespians]]
 
 [[3. NPCs/Avalon/Mira Crepus\|Mira Crepus]] is the name of the girl  we need to find in the kingdom of Midgard

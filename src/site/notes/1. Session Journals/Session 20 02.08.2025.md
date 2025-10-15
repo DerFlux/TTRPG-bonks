@@ -6,7 +6,7 @@
 
 [[4. Player characters/Mara Malinovinoch\|Mara]] kabedon'd [[4. Player characters/Freya Mythcrya\|Freya]], whispering into the mic everyone has. Inspecting her wounds, and then barrating her for how she fought that combat. From the utter embarrassment due to everyone hearing it, Freya would cover her face.
 
-[[Stellar Stellar\|Stellar Stellar]] and [[3. NPCs/Sakura Fubuki\|Sakura Fubuki]] both found one important target each. Mira still hasn't been found. 
+[[Stellar Stellar\|Stellar Stellar]] and [[3. NPCs/Avalon/Sakura Fubuki\|Sakura Fubuki]] both found one important target each. Mira still hasn't been found. 
 
 ![image 1.png](/img/user/Images/image%201.png)
 

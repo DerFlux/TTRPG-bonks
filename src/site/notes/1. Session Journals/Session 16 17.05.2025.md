@@ -40,7 +40,7 @@ We met with [[3. NPCs/Avalon/Atlas, The Barron\|Atlas, The Barron]] and [[3. NPC
 
 Mira information.
 
-Going out, the divine destiny's are going out as well. [[3. NPCs/Sakura Fubuki\|Sakura Fubuki]] will stay here because of [[3. NPCs/Avalon/Orihime Tsubasa\|Orihime Tsubasa]]
+Going out, the divine destiny's are going out as well. [[3. NPCs/Avalon/Sakura Fubuki\|Sakura Fubuki]] will stay here because of [[3. NPCs/Avalon/Orihime Tsubasa\|Orihime Tsubasa]]
 
 We'll be leaving to [[Hela\|Hela]] separately 
 

@@ -29,7 +29,7 @@ an insider a pirate a serial murderer
 
 We made it into the prison but as we were on the ship we notice a [[3. NPCs/Thespians/Thespians\|Thespian]] portal above the prison.
 
-As [[3. NPCs/Avalon/Carole Argent\|carole]], [[3. NPCs/Avalon/Atlas, The Barron\|Atlas]] and the others parties ([[3. NPCs/Avalon/The Divine Destinies\|1]]. [[3. NPCs/Sakura Fubuki\|2]]. [[Stellar Stellar\|3]].) and Leones distracted from the sides via canon fires, we'd enter in a straight line. 
+As [[3. NPCs/Avalon/Carole Argent\|carole]], [[3. NPCs/Avalon/Atlas, The Barron\|Atlas]] and the others parties ([[3. NPCs/Avalon/The Divine Destinies\|1]]. [[3. NPCs/Avalon/Sakura Fubuki\|2]]. [[Stellar Stellar\|3]].) and Leones distracted from the sides via canon fires, we'd enter in a straight line. 
 
 We fought fiends, and then rescued a pirate who said that deeper down his pirate captain was sealed ahead 
 As we proceeded entered in diabolic a door stays "Forfit you life if you wish to enter" which Freya translated. 
