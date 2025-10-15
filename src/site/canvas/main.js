@@ -28,15 +28,13 @@
   function noteUrlFromVaultPath(vaultPath) {
     if (!vaultPath) return null;
     if (isImagePath(vaultPath)) return null;
-
     const withoutExt = vaultPath.replace(/\.md$/i, "");
     const parts = withoutExt.split("/").map(mapSegment).filter(Boolean);
     return "/" + parts.join("/") + "/"; // your site uses trailing slashes
   }
 
   // Encode each path segment safely (spaces, parentheses, etc.)
-  const encodePath = (p) =>
-    p.split("/").map((seg) => encodeURIComponent(seg)).join("/");
+  const encodePath = (p) => p.split("/").map((seg) => encodeURIComponent(seg)).join("/");
 
   // Preferred mapping: Obsidian “Images/…” → /img/user/Images/…
   function imageUrlFromVaultPath(vaultPath) {
@@ -121,6 +119,98 @@
     return { title: first || "Text", desc: rest };
   }
 
+  // Guess image name from a note title (for NPCs etc.)
+  function nameBasedImageCandidates(title) {
+    if (!title) return [];
+    const raw = title.replace(/\.[^.]+$/, "");
+    const variants = Array.from(new Set([
+      raw,
+      raw.replace(/[,()]/g, "").replace(/\s+/g, " ").trim(),      // remove punctuation
+      raw.replace(/\s+/g, " "),                                    // collapse spaces
+    ]));
+    const exts = [".png", ".jpg", ".jpeg", ".PNG", ".JPG", ".JPEG"];
+    const cands = [];
+    for (const v of variants) {
+      const enc = encodePath(v);
+      for (const e of exts) {
+        cands.push(`/img/user/Images/${enc}${e}`);
+      }
+    }
+    return cands;
+  }
+
+  // --- HTML scraping helpers for enrichment ---
+  function firstNonEmptyParagraph(doc) {
+    const P_SELECTORS = [
+      "main p", "article p", ".content p", ".prose p",
+      ".markdown-rendered p", ".markdown-body p", ".post p", "#content p", "p"
+    ];
+    for (const sel of P_SELECTORS) {
+      const ps = doc.querySelectorAll(sel);
+      for (const p of ps) {
+        const text = (p.textContent || "").replace(/\s+/g, " ").trim();
+        if (text && text.length > 10) return text;
+      }
+    }
+    return "";
+  }
+
+  function firstImageUrl(doc, pageUrl) {
+    // 1) Open Graph / meta
+    const og = doc.querySelector('meta[property="og:image"], meta[name="og:image"]');
+    if (og && og.content) return new URL(og.content, pageUrl).href;
+
+    // 2) preload link
+    const pre = doc.querySelector('link[rel="preload"][as="image"][href]');
+    if (pre) return new URL(pre.getAttribute("href"), pageUrl).href;
+
+    // 3) content images
+    const IMG_SELECTORS = [
+      "main img", "article img", ".content img", ".prose img",
+      ".markdown-rendered img", ".markdown-body img", ".post img",
+      "#content img", ".page img", "img"
+    ];
+    for (const sel of IMG_SELECTORS) {
+      const img = doc.querySelector(sel);
+      if (!img) continue;
+
+      // srcset first
+      const srcset = img.getAttribute("srcset");
+      if (srcset) {
+        const first = srcset.split(",")[0].trim().split(/\s+/)[0];
+        if (first) return new URL(first, pageUrl).href;
+      }
+
+      // common lazy attrs
+      const lazySrc = img.getAttribute("data-src") || img.getAttribute("data-lazy-src") || img.getAttribute("data-original");
+      if (lazySrc) return new URL(lazySrc, pageUrl).href;
+
+      const src = img.getAttribute("src");
+      if (src) return new URL(src, pageUrl).href;
+    }
+
+    return "";
+  }
+
+  // Simple cache so we don't re-fetch the same page
+  const pageCache = new Map();
+
+  async function fetchPageInfo(url) {
+    if (pageCache.has(url)) return pageCache.get(url);
+    const p = (async () => {
+      const resp = await fetch(url, { credentials: "same-origin" });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${url}`);
+      const html = await resp.text();
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      return {
+        image: firstImageUrl(doc, url),
+        teaser: firstNonEmptyParagraph(doc),
+      };
+    })();
+    pageCache.set(url, p);
+    return p;
+  }
+
   // Convert Obsidian JSON Canvas -> viewer data
   function adaptJsonCanvas(jsonCanvas) {
     const items = [];
@@ -138,9 +228,7 @@
         const { title, desc } = extractTitleAndDesc(stripEmbeddedImages(n.text));
 
         const item = { ...common, title, description: desc };
-        if (embeds.length) {
-          item.imageCandidates = imageCandidatesFromVaultPath(embeds[0]);
-        }
+        if (embeds.length) item.imageCandidates = imageCandidatesFromVaultPath(embeds[0]);
         items.push(item);
         continue;
       }
@@ -155,17 +243,18 @@
             imageCandidates: imageCandidatesFromVaultPath(f)
           });
         } else {
-          // Note card (Markdown). Start with a clean breadcrumb; enrich later via fetch.
+          // Note card (Markdown). Start with clean breadcrumb; enrich later via fetch.
           const parts = f.replace(/\.md$/i, "").split("/");
           const title = parts.pop();
           const crumb = parts.length ? parts.join(" › ") : "";
-
           items.push({
             ...common,
             title,
             description: crumb,
             link: noteUrlFromVaultPath(f),
-            _needsEnrich: true // mark for HTML fetch
+            _needsEnrich: true,
+            // name-based guesses help NPCs with matching image filenames
+            _nameGuesses: nameBasedImageCandidates(title)
           });
         }
         continue;
@@ -191,7 +280,6 @@
     const items = appInstance.data.items || [];
     const toEnrich = items.filter(it => it._needsEnrich && it.link);
 
-    // Limit concurrency a bit
     const queue = toEnrich.slice();
     const MAX_CONCURRENCY = 4;
     let active = 0;
@@ -213,44 +301,41 @@
 
       const fetchNote = async (item) => {
         try {
-          const resp = await fetch(item.link, { credentials: "same-origin" });
-          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-          const html = await resp.text();
-          const doc = new DOMParser().parseFromString(html, "text/html");
+          const info = await fetchPageInfo(item.link);
 
-          // pick first image (prefer images inside main/article/content)
-          let img = doc.querySelector("main img, article img, .content img, .post img, img");
-          if (img && img.getAttribute("src")) {
-            const abs = new URL(img.getAttribute("src"), item.link).href;
-            const cands = item.imageCandidates ? item.imageCandidates.slice() : [];
-            if (!cands.includes(abs)) cands.unshift(abs);
-            item.imageCandidates = cands;
-          }
+          // Merge image candidates: page image (if any) + name guesses + existing
+          const cands = [];
+          if (info.image) cands.push(info.image);
+          if (Array.isArray(item._nameGuesses)) cands.push(...item._nameGuesses);
+          if (Array.isArray(item.imageCandidates)) cands.push(...item.imageCandidates);
+          item.imageCandidates = Array.from(new Set(cands));
 
-          // pick first meaningful paragraph of text
-          let p = doc.querySelector("main p, article p, .content p, .post p, p");
-          if (p) {
-            const text = p.textContent.trim().replace(/\s+/g, " ");
-            if (text) {
-              // keep breadcrumb if present, add a line break + teaser
-              item.description = item.description
-                ? `${item.description}\n${text}`
-                : text;
-            }
+          // Description: keep breadcrumb, add teaser if present
+          if (info.teaser) {
+            item.description = item.description
+              ? `${item.description}\n${info.teaser}`
+              : info.teaser;
           }
 
           // reflect changes on screen
           appInstance.render();
         } catch (err) {
-          // Silent-ish: leave the card as-is
+          // leave the card usable even if enrichment fails
           console.warn("Enrich failed for", item.link, err);
         } finally {
           delete item._needsEnrich;
+          delete item._nameGuesses;
         }
       };
 
       kick();
     });
+  }
+
+  async function loadJsonCanvas(path) {
+    const res = await fetch(path);
+    if (!res.ok) throw new Error(`Failed to load ${path}: ${res.status}`);
+    return res.json();
   }
 
   // ---------- boot ----------
@@ -280,10 +365,4 @@
       URL.revokeObjectURL(url);
     });
   })();
-
-  async function loadJsonCanvas(path) {
-    const res = await fetch(path);
-    if (!res.ok) throw new Error(`Failed to load ${path}: ${res.status}`);
-    return res.json();
-  }
 })();
