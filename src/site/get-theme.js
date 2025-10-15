@@ -20,6 +20,15 @@ async function getTheme() {
         themeUrl = themeUrl.replace("obsidian.css", "theme.css");
       }
     }
+  // after you compute the chosen theme path (e.g., _theme.dark.hash.css),
+  // copy it to ./src/site/styles/theme.css
+    
+    const fs = require('fs');
+    const path = require('path');
+    const chosen = path.join(__dirname, '../styles/_theme.YOURHASH.css'); // your existing variable
+    const stable = path.join(__dirname, '../styles/theme.css');
+    fs.copyFileSync(chosen, stable);
+    console.log('Wrote stable theme.css');
 
     const res = await axios.get(themeUrl);
     try {
