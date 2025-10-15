@@ -3,7 +3,43 @@
   const container = document.getElementById('canvas-container');
   const world = document.getElementById('world');
   const app = new CanvasApp(container, world);
-  window.CanvasAppInstance = app; // debugging
+  window.CanvasAppInstance = app; // leave exposed for manual checks
+
+  // ---------- Debug controller (default OFF) ----------
+  const Debug = (() => {
+    let on = false;
+    try {
+      const qs = new URLSearchParams(location.search);
+      if (qs.get('debug') === '1') on = true;
+      if (localStorage.getItem('canvasDebug') === '1') on = true;
+    } catch {}
+    function set(v) {
+      on = !!v;
+      try { localStorage.setItem('canvasDebug', on ? '1' : '0'); } catch {}
+      document.documentElement.classList.toggle('canvas-debug', on);
+      const cb = document.getElementById('debug-toggle');
+      if (cb) cb.checked = on;
+    }
+    function initToggle() {
+      // attach a small toggle into the toolbar (if present)
+      const tb = document.querySelector('.toolbar');
+      if (!tb || document.getElementById('debug-toggle')) return;
+      const wrap = document.createElement('label');
+      wrap.style.cssText = 'display:flex;align-items:center;gap:6px;margin-left:6px;font:12px/1.2 monospace;opacity:.75;';
+      wrap.title = 'Show canvas debugging badges and logs';
+      wrap.innerHTML = `
+        <input id="debug-toggle" type="checkbox" style="accent-color: currentColor;">
+        <span>Debugging</span>
+      `;
+      tb.appendChild(wrap);
+      const cb = wrap.querySelector('#debug-toggle');
+      cb.checked = on;
+      cb.addEventListener('change', () => set(cb.checked));
+    }
+    // initialize class and toggle state on load
+    set(on);
+    return { isOn: () => on, set, initToggle };
+  })();
 
   // ---------- helpers ----------
   const isImagePath = (p) => /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(p || "");
@@ -21,36 +57,34 @@
 
   const encodePath = (p) => p.split("/").map((seg) => encodeURIComponent(seg)).join("/");
 
-  // --- URL sanitize (handles stray characters like a trailing "|", double slashes, etc.)
   function sanitizePath(path) {
-    let s = String(path || "").replace(/[|]+$/g, "");          // drop trailing pipes
-    s = s.replace(/\/{2,}/g, "/");                             // collapse //
+    let s = String(path || "").replace(/[|]+$/g, "");
+    s = s.replace(/\/{2,}/g, "/");
     if (!s.startsWith("/")) s = "/" + s;
     return s;
   }
 
-  // Fallback builder when manifest cannot resolve (NOW fixes "3. NPCs" → "3-np-cs")
+  // Fallback builder when manifest cannot resolve (handles "3. NPCs" → "3-np-cs")
   function noteUrlFromVaultPath(vaultPath) {
     if (!vaultPath || isImagePath(vaultPath)) return null;
     const withoutExt = vaultPath.replace(/\.md$/i, "");
     const raw = withoutExt.split("/");
     const parts = raw.map((seg, i) => {
       const sl = slugifySegment(seg);
-      // generic rule to mirror your build:
-      // the first folder "3. NPCs" becomes "3-np-cs"
       if (i === 0 && /^3-?npcs$/i.test(sl)) return "3-np-cs";
       return sl;
     }).filter(Boolean);
-
     return sanitizePath(parts.join("/") + "/");
   }
 
+  // Preferred mapping: Obsidian “Images/…” → /img/user/Images/…
   function imageUrlFromVaultPath(vaultPath) {
     if (!vaultPath) return null;
     const stripped = vaultPath.replace(/^Images\//i, "");
     return "/img/user/Images/" + encodePath(stripped);
   }
 
+  // Robust image candidates
   function imageCandidatesFromVaultPath(vaultPath) {
     if (!vaultPath) return [];
     const stripped = vaultPath.replace(/^Images\//i, "");
@@ -141,9 +175,9 @@
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const man = await resp.json();
       ManifestIndex = indexManifest(man);
-      window.__PageManifestIndex = ManifestIndex;
+      if (Debug.isOn()) window.__PageManifestIndex = ManifestIndex;
     } catch (e) {
-      console.warn("Could not load /page-manifest.json; using slug fallback.", e);
+      if (Debug.isOn()) console.warn("Could not load /page-manifest.json; using slug fallback.", e);
       ManifestIndex = { entries: [], byKey: new Map(), byTitleSlug: new Map() };
     }
   }
@@ -219,8 +253,6 @@
     const lc = base.toLowerCase();
     const rawParts = lc.split("/").filter(Boolean);
     const slugParts = rawParts.map(slugifySegment);
-
-    // fix your first folder rename
     if (slugParts[0] === "3-npcs" || slugParts[0] === "3--npcs") slugParts[0] = "3-np-cs";
 
     const stemCandidate = "/" + slugParts.join("/");
@@ -230,13 +262,9 @@
     const altStemCandidate = "/" + slugParts.slice(0, -1).concat([altLast]).join("/");
 
     const cands = new Set([
-      base,
-      lc,
-      stemCandidate,
-      stemCandidate.slice(1),
-      altStemCandidate,
-      altStemCandidate.slice(1),
-      // also include the plain fallback builder path (sanitized)
+      base, lc,
+      stemCandidate, stemCandidate.slice(1),
+      altStemCandidate, altStemCandidate.slice(1),
       sanitizePath(noteUrlFromVaultPath(canvasPath) || "")
     ]);
 
@@ -342,7 +370,7 @@
     return "";
   }
 
-  // ---- Robust page fetch with URL variants (fixes ENR404) ----
+  // Robust page fetch with URL variants (for ENR404)
   async function tryFetch(url) {
     const u = new URL(url, location.origin);
     const base = sanitizePath(u.pathname);
@@ -367,7 +395,7 @@
         }
       } catch (_) {}
     }
-    return { ok: false, url: url, html: "" };
+    return { ok: false, url, html: "" };
   }
 
   const pageCache = new Map();
@@ -444,8 +472,9 @@
     return { items, edges };
   }
 
-  // Decorate unresolved cards with a visible badge
+  // Visible diagnostics (only when Debug ON)
   function markUnresolvedCards(appInstance) {
+    if (!Debug.isOn()) return;
     const unresolved = (appInstance.data.items || []).filter(it => !it.link && !it._needsManifestResolve && it._canvasPath);
     if (!unresolved.length) return;
     for (const it of unresolved) {
@@ -495,6 +524,7 @@
       };
 
       const addBadge = (id, text, css) => {
+        if (!Debug.isOn()) return; // suppress badges when not debugging
         const el = [...document.querySelectorAll('.card')].find(n => n._itemId === id);
         if (!el) return;
         const b = document.createElement('div');
@@ -526,7 +556,7 @@
 
           appInstance.render();
         } catch (err) {
-          console.warn("Enrich failed for", item.link, err);
+          if (Debug.isOn()) console.warn("Enrich failed for", item.link, err);
           addBadge(item.id, 'ENR 404', 'position:absolute;top:8px;left:8px;background:#555;color:#fff;font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px;');
         } finally {
           delete item._needsEnrich;
@@ -554,7 +584,7 @@
       resolveNotesViaManifest(app);
       await enrichNotesFromHtml(app);
     } catch (err) {
-      console.error("Failed to load/enrich canvas with manifest:", err);
+      if (Debug.isOn()) console.error("Failed to load/enrich canvas with manifest:", err);
       app.setData({ items: [] });
     }
 
@@ -570,5 +600,8 @@
       document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(url);
     });
+
+    // add the “Debugging” toggle control (default OFF)
+    Debug.initToggle();
   })();
 })();
