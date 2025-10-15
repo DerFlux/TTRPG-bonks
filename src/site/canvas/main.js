@@ -44,13 +44,24 @@
     return "/" + parts.join("/") + "/";
   }
 
-  // Map canvas image path to the published image URL in your repo
+  // 2) Map Obsidian “Images/...” → your public path (preferred)
   function imageUrlFromVaultPath(vaultPath) {
-    // Canvas often stores "Images/Foo Bar.png" etc.
     if (!vaultPath) return null;
-    const path = vaultPath.replace(/^Images\//i, ""); // strip leading "Images/"
-    // Images live in src/site/img/user/Images -> served as /img/user/Images/...
-    return "/img/user/Images/" + encodeURI(path);
+    // Strip a leading "Images/" (Obsidian vault style)
+    const stripped = vaultPath.replace(/^Images\//i, "");
+    // Served from: src/site/img/user/Images -> /img/user/Images
+    return "/img/user/Images/" + encodeURI(stripped);
+  }
+
+  // 3) Optional fallbacks: try multiple public locations automatically
+  function imageCandidatesFromVaultPath(vaultPath) {
+    const stripped = vaultPath.replace(/^Images\//i, "");
+    const enc = encodeURI(stripped);
+    return [
+      "/img/user/Images/" + enc,  // preferred (from passthrough above)
+      "/img/Images/" + enc,       // if you publish here instead
+      "/canvas/Images/" + enc     // if you dropped them next to the app
+    ];
   }
 
   // Convert Obsidian JSON Canvas -> viewer data
@@ -87,7 +98,10 @@
             ...common,
             title: f.split("/").pop().replace(/\.[^.]+$/, ""),
             description: "",
-            image: imageUrlFromVaultPath(f),
+            // use candidate fallbacks instead of a single URL
+            imageCandidates: imageCandidatesFromVaultPath(f)
+            // (you can also keep a single preferred URL if you want)
+            // image: imageUrlFromVaultPath(f)
           });
         } else {
           items.push({
