@@ -112,6 +112,7 @@ class CanvasApp {
     el.style.top  = `${item.y}px`;
     el._modelPos = { left: item.x, top: item.y };
     el._drag = null;
+    el._itemId = item.id; // <-- IMPORTANT: allow main.js to attach badges to the right card
 
     // image fallbacks
     const candidates = Array.isArray(item.imageCandidates) && item.imageCandidates.length
