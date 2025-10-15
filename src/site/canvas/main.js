@@ -21,11 +21,28 @@
 
   const encodePath = (p) => p.split("/").map((seg) => encodeURIComponent(seg)).join("/");
 
+  // --- URL sanitize (handles stray characters like a trailing "|", double slashes, etc.)
+  function sanitizePath(path) {
+    let s = String(path || "").replace(/[|]+$/g, "");          // drop trailing pipes
+    s = s.replace(/\/{2,}/g, "/");                             // collapse //
+    if (!s.startsWith("/")) s = "/" + s;
+    return s;
+  }
+
+  // Fallback builder when manifest cannot resolve (NOW fixes "3. NPCs" → "3-np-cs")
   function noteUrlFromVaultPath(vaultPath) {
     if (!vaultPath || isImagePath(vaultPath)) return null;
     const withoutExt = vaultPath.replace(/\.md$/i, "");
-    const parts = withoutExt.split("/").map(slugifySegment).filter(Boolean);
-    return "/" + parts.join("/") + "/";
+    const raw = withoutExt.split("/");
+    const parts = raw.map((seg, i) => {
+      const sl = slugifySegment(seg);
+      // generic rule to mirror your build:
+      // the first folder "3. NPCs" becomes "3-np-cs"
+      if (i === 0 && /^3-?npcs$/i.test(sl)) return "3-np-cs";
+      return sl;
+    }).filter(Boolean);
+
+    return sanitizePath(parts.join("/") + "/");
   }
 
   function imageUrlFromVaultPath(vaultPath) {
@@ -203,6 +220,7 @@
     const rawParts = lc.split("/").filter(Boolean);
     const slugParts = rawParts.map(slugifySegment);
 
+    // fix your first folder rename
     if (slugParts[0] === "3-npcs" || slugParts[0] === "3--npcs") slugParts[0] = "3-np-cs";
 
     const stemCandidate = "/" + slugParts.join("/");
@@ -218,6 +236,8 @@
       stemCandidate.slice(1),
       altStemCandidate,
       altStemCandidate.slice(1),
+      // also include the plain fallback builder path (sanitized)
+      sanitizePath(noteUrlFromVaultPath(canvasPath) || "")
     ]);
 
     const last2Raw = rawParts.slice(-2).join("/");
@@ -236,7 +256,7 @@
     }
 
     cands.add(lc.replace(/[(),]/g, "").replace(/&/g, "and").replace(/\s+/g, "-"));
-    return Array.from(cands);
+    return Array.from(cands).filter(Boolean);
   }
 
   function resolveUrlFromManifest(canvasPath) {
@@ -245,10 +265,11 @@
 
     const candidates = manifestCandidatesFromCanvasPath(canvasPath);
     for (const key of candidates) {
-      const arr = byKey.get(String(key).trim());
+      const k = String(key).trim();
+      const arr = byKey.get(k);
       if (arr && arr.length) {
         const withUrl = arr.find(e => !!e.url) || arr[0];
-        return withUrl.url || null;
+        if (withUrl && withUrl.url) return withUrl.url;
       }
     }
 
@@ -323,17 +344,18 @@
 
   // ---- Robust page fetch with URL variants (fixes ENR404) ----
   async function tryFetch(url) {
-    const variants = [];
     const u = new URL(url, location.origin);
-    const base = u.pathname;
+    const base = sanitizePath(u.pathname);
 
     const withSlash = base.endsWith("/") ? base : base + "/";
     const withoutSlash = base.endsWith("/") ? base.slice(0, -1) : base;
 
-    variants.push(withSlash);
-    variants.push(withoutSlash);
-    variants.push(withSlash + "index.html");
-    variants.push(withSlash + "index.htm");
+    const variants = [
+      withSlash,
+      withoutSlash,
+      withSlash + "index.html",
+      withSlash + "index.htm",
+    ];
 
     for (const path of variants) {
       const full = new URL(path, location.origin).toString();
@@ -497,7 +519,6 @@
               : info.teaser;
           }
 
-          // If fetch ok but no teaser and no image, surface as NO CONTENT
           if ((!info.teaser || !info.teaser.trim()) &&
               (!item.imageCandidates || item.imageCandidates.length === 0)) {
             addBadge(item.id, 'NO CONTENT', 'position:absolute;top:8px;left:8px;background:#7f8c8d;color:#fff;font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px;');
