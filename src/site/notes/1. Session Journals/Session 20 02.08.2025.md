@@ -30,7 +30,7 @@ Mara slashed her down, despite hesitating, wanting to redeem Cartha and give her
 As everyone jumped down from the balcony to get to Barbatos's ship the flying dutchman, Freya took Mara's hand and before fulling jumping down. Freya would, for the first time use her Nephilim wings, showing them to the others.
 
 Grabbing Mara's waist as they flew together, with the wind on their faces.
-We went back to [[2. Locations/Astra/The Northern Lands/Leones/Leones\|Leones]] and got greeted by many people, [[2. Locations/Avalon/Avalon (Between Astra & Terra)\|Avalon]] included.
+We went back to [[2. Locations/Astra/The Northern Lands/Leones/Leones\|Leones]] and got greeted by many people, [[2. Locations/Avalon/Avalon (Between Astra and Terra)\|Avalon]] included.
 
 For rescuing Mira, saving people from the prison and slaying the [[3. NPCs/Thespians/Thespians\|Thespian]] Cartha: 3500g
 
@@ -48,7 +48,7 @@ M: "Rather cute aren't you?"
 
 [[4. Player characters/Amantha the Fourth\|Amantha]] will be retiring as she had enough, but will stay in the island of Avalon.
 
-[[3. NPCs/Avalon/Xavier Crepus\|Xavier]] announced that the [[3. NPCs/Avalon/Unholy Witches\|Unholy Witches]] will be splitting apart for a while. For 2 months they'll be exploring different areas within the world, spreading the name of [[2. Locations/Avalon/Avalon (Between Astra & Terra)\|Avalon]] and the adventurers guild by committing good deeds and so forth, similar to what Abigail and Edd are doing. 
+[[3. NPCs/Avalon/Xavier Crepus\|Xavier]] announced that the [[3. NPCs/Avalon/Unholy Witches\|Unholy Witches]] will be splitting apart for a while. For 2 months they'll be exploring different areas within the world, spreading the name of [[2. Locations/Avalon/Avalon (Between Astra and Terra)\|Avalon]] and the adventurers guild by committing good deeds and so forth, similar to what Abigail and Edd are doing. 
 
 Mara gifted everyone an item as a surprise but she wasn't there to see it as she had left already.  Freya got a crown of witchcraft. Amantha got the daredevil boots and [[4. Player characters/Velvet Crowe\|Velvet]] a Instinct crown.
 

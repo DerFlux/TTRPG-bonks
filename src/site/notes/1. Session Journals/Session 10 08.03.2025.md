@@ -26,7 +26,7 @@ The general [[Autorius\|Autorius]] will be revealing something big soon
 
 We bake for the nobles, but (rolled badly) with Mara due to stress and other factors and knowing that [[3. NPCs/Thespians/Thespians\|Thespians]] seem to be everywhere and the juju's of the feeling of her god's power being suppressed due to a totem nearby. The bread doesn't satisfy the nobles, compared to all the times it satisfied the peasents.
 
-Using [[3. NPCs/Familiars/Ouroboros\|Ouroboros]] Freya investigated and sneaked her way through the ball, finding an eerie door. Within the door are human sacrifices, and a rift of the Thespian dimension above. The energy there within gives Mara most Juju's. Freya would take pictures of these things as evidence for [[2. Locations/Avalon/Avalon (Between Astra & Terra)\|Avalon]].
+Using [[3. NPCs/Familiars/Ouroboros\|Ouroboros]] Freya investigated and sneaked her way through the ball, finding an eerie door. Within the door are human sacrifices, and a rift of the Thespian dimension above. The energy there within gives Mara most Juju's. Freya would take pictures of these things as evidence for [[2. Locations/Avalon/Avalon (Between Astra and Terra)\|Avalon]].
 
 Meanwhile at the same time, Mara, Velvet and Amantha notice the arrival of [[3. NPCs/Thespians/Cartha Coccineus, the Scarlet Priestess\|Cartha Coccineus, the Scarlet Priestess]]. Calling out to Mara to force her to come over. While in her disguise Mara approaches her. 
 
