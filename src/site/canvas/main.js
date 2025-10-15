@@ -24,6 +24,17 @@
   ]);
   const mapSegment = (seg) => segmentMap.get(slugifySegment(seg)) || slugifySegment(seg);
 
+  const segmentMap = new Map([
+  ["3-npcs","3-np-cs"],
+
+  // replace "&" with "and" for folder slugs your site emits
+  ["between-astra-terra","between-astra-and-terra"],
+
+  // if your build lowercases everything (already handled), add more as needed:
+  // ["thespians","thespians"] // (example placeholder)
+]);
+
+
   // Build a site URL from an Obsidian vault path to a note (no /notes prefix)
   function noteUrlFromVaultPath(vaultPath) {
     if (!vaultPath) return null;
@@ -298,6 +309,16 @@
           });
         }
       };
+      
+// add a visible "NO CONTENT" badge on enrichment failure
+function markCardNoContent(id, title) {
+  const el = [...document.querySelectorAll('.card')].find(n => n && n._itemId === id);
+  if (!el) return;
+  const badge = document.createElement('div');
+  badge.textContent = 'ENR 404';
+  badge.style.cssText = 'position:absolute;top:8px;left:8px;background:#555;color:#fff;font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px;';
+  el.appendChild(badge);
+}
 
       const fetchNote = async (item) => {
         try {
