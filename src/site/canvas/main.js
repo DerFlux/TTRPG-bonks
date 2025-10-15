@@ -49,7 +49,7 @@
   function imageCandidatesFromVaultPath(vaultPath) {
     if (!vaultPath) return [];
     const stripped = vaultPath.replace(/^Images\//i, "");
-    const enc = encodePath(stripped);              // segment-encoded
+    const enc = encodePath(stripped);
     const lowerEnc = enc.toLowerCase();
 
     // split base/ext
@@ -155,7 +155,7 @@
             imageCandidates: imageCandidatesFromVaultPath(f)
           });
         } else {
-          // ✅ NEW: pretty breadcrumb instead of raw "2. Locations/.../Foo.md"
+          // Note card (Markdown). Start with a clean breadcrumb; enrich later via fetch.
           const parts = f.replace(/\.md$/i, "").split("/");
           const title = parts.pop();
           const crumb = parts.length ? parts.join(" › ") : "";
@@ -163,8 +163,9 @@
           items.push({
             ...common,
             title,
-            description: crumb,               // show a clean trail
+            description: crumb,
             link: noteUrlFromVaultPath(f),
+            _needsEnrich: true // mark for HTML fetch
           });
         }
         continue;
@@ -185,20 +186,87 @@
     return { items, edges };
   }
 
-  async function loadJsonCanvas(path) {
-    const res = await fetch(path);
-    if (!res.ok) throw new Error(`Failed to load ${path}: ${res.status}`);
-    return res.json();
+  // --------- enrichment: fetch built HTML of notes to pull first image + teaser text
+  async function enrichNotesFromHtml(appInstance) {
+    const items = appInstance.data.items || [];
+    const toEnrich = items.filter(it => it._needsEnrich && it.link);
+
+    // Limit concurrency a bit
+    const queue = toEnrich.slice();
+    const MAX_CONCURRENCY = 4;
+    let active = 0;
+
+    return new Promise((resolve) => {
+      if (!queue.length) return resolve();
+
+      const kick = () => {
+        while (active < MAX_CONCURRENCY && queue.length) {
+          const item = queue.shift();
+          active += 1;
+          fetchNote(item).finally(() => {
+            active -= 1;
+            if (!queue.length && active === 0) resolve();
+            else kick();
+          });
+        }
+      };
+
+      const fetchNote = async (item) => {
+        try {
+          const resp = await fetch(item.link, { credentials: "same-origin" });
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const html = await resp.text();
+          const doc = new DOMParser().parseFromString(html, "text/html");
+
+          // pick first image (prefer images inside main/article/content)
+          let img = doc.querySelector("main img, article img, .content img, .post img, img");
+          if (img && img.getAttribute("src")) {
+            const abs = new URL(img.getAttribute("src"), item.link).href;
+            const cands = item.imageCandidates ? item.imageCandidates.slice() : [];
+            if (!cands.includes(abs)) cands.unshift(abs);
+            item.imageCandidates = cands;
+          }
+
+          // pick first meaningful paragraph of text
+          let p = doc.querySelector("main p, article p, .content p, .post p, p");
+          if (p) {
+            const text = p.textContent.trim().replace(/\s+/g, " ");
+            if (text) {
+              // keep breadcrumb if present, add a line break + teaser
+              item.description = item.description
+                ? `${item.description}\n${text}`
+                : text;
+            }
+          }
+
+          // reflect changes on screen
+          appInstance.render();
+        } catch (err) {
+          // Silent-ish: leave the card as-is
+          console.warn("Enrich failed for", item.link, err);
+        } finally {
+          delete item._needsEnrich;
+        }
+      };
+
+      kick();
+    });
   }
 
   // ---------- boot ----------
   (async () => {
     try {
+      // Load your Obsidian canvas JSON (placed in src/site/canvas/)
       const jsonCanvas = await loadJsonCanvas("tir.canvas.json");
       const data = adaptJsonCanvas(jsonCanvas);
+
+      // Initial render (fast)
       app.setData(data);
+
+      // Progressive enrichment (fetch first image + paragraph for note cards)
+      await enrichNotesFromHtml(app);
     } catch (err) {
-      console.error("Failed to load canvas JSON:", err);
+      console.error("Failed to load/enrich canvas:", err);
       app.setData({ items: [] });
     }
 
@@ -212,4 +280,10 @@
       URL.revokeObjectURL(url);
     });
   })();
+
+  async function loadJsonCanvas(path) {
+    const res = await fetch(path);
+    if (!res.ok) throw new Error(`Failed to load ${path}: ${res.status}`);
+    return res.json();
+  }
 })();
