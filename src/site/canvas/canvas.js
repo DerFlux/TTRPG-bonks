@@ -34,17 +34,16 @@ class CanvasApp {
     window.addEventListener('mouseup', this._onMouseUp);
     window.addEventListener('resize', () => this._updateAllEdges());
 
-    // SVG layer for edges (lives inside world so it picks up pan/zoom)
+    // SVG layer for edges
     this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     this.svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
     this.svg.setAttribute('style', 'position:absolute;left:0;top:0;overflow:visible;pointer-events:none;');
-    // defs: arrowhead
     const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
     const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
     marker.setAttribute('id', 'arrowhead');
     marker.setAttribute('markerWidth', '10');
     marker.setAttribute('markerHeight', '7');
-    marker.setAttribute('refX', '10'); // end of path
+    marker.setAttribute('refX', '10');
     marker.setAttribute('refY', '3.5');
     marker.setAttribute('orient', 'auto');
     const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -53,7 +52,6 @@ class CanvasApp {
     marker.appendChild(arrowPath);
     defs.appendChild(marker);
     this.svg.appendChild(defs);
-    // insert as the first child so edges sit behind cards
     this.world.insertAdjacentElement('afterbegin', this.svg);
 
     // initial render
@@ -67,7 +65,6 @@ class CanvasApp {
   }
 
   setData(data) {
-    // expect { items: [...], edges: [...] }
     this.data = JSON.parse(JSON.stringify(data || {}));
     if (!this.data.items) this.data.items = [];
     if (!this.data.edges) this.data.edges = [];
@@ -75,7 +72,6 @@ class CanvasApp {
   }
 
   getData() {
-    // read current positions from DOM before exporting
     for (const item of this.data.items) {
       const el = this.cardEls.get(item.id);
       if (el) {
@@ -89,18 +85,15 @@ class CanvasApp {
 
   // ===== RENDER =====
   render() {
-    // Clear world (but keep SVG layer)
     this.world.querySelectorAll('.card').forEach(n => n.remove());
     this.cardEls.clear();
 
-    // Draw cards
     for (const item of this.data.items) {
       const el = this._createCardEl(item);
       this.world.appendChild(el);
       this.cardEls.set(item.id, el);
     }
 
-    // Draw edges after cards so we can compute sizes
     this._renderEdges();
     this._applyView();
   }
@@ -112,9 +105,8 @@ class CanvasApp {
     el.style.top  = `${item.y}px`;
     el._modelPos = { left: item.x, top: item.y };
     el._drag = null;
-    el._itemId = item.id; // <-- IMPORTANT: allow main.js to attach badges to the right card
+    el._itemId = item.id; // allow main.js to attach badges to the right card
 
-    // image fallbacks
     const candidates = Array.isArray(item.imageCandidates) && item.imageCandidates.length
       ? item.imageCandidates.slice()
       : (item.image ? [item.image] : []);
@@ -127,7 +119,6 @@ class CanvasApp {
          </div>`
       : '';
 
-    // title + link
     const safeTitle = this._escape(item.title || 'Untitled');
     const titleHtml = item.link
       ? `<h3><a href="${this._escape(item.link)}" target="_blank" rel="noopener">${safeTitle}</a></h3>`
@@ -142,28 +133,30 @@ class CanvasApp {
       ${safeDesc ? `<p>${safeDesc}</p>` : ``}
     `;
 
-    // image fallback debugging
     if (candidates.length) {
       const imgEl = el.querySelector('img[data-role="card-img"]');
       let idx = 0;
       imgEl.addEventListener('error', () => {
+        // only log/mark when debugging is enabled
+        const debugOn = document.documentElement.classList.contains('canvas-debug');
         if (idx + 1 < candidates.length) {
-          console.warn('Image failed, trying next:', candidates[idx]);
+          if (debugOn) console.warn('Image failed, trying next:', candidates[idx]);
           idx += 1;
           imgEl.src = candidates[idx];
         } else {
-          console.error('All image candidates failed for', (item.title || item.id), candidates);
-          const badge = document.createElement('div');
-          badge.textContent = 'IMG 404';
-          badge.style.cssText =
-            'position:absolute;top:8px;right:8px;background:#c0392b;color:#fff;' +
-            'font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px;';
-          el.appendChild(badge);
+          if (debugOn) {
+            console.error('All image candidates failed for', (item.title || item.id), candidates);
+            const badge = document.createElement('div');
+            badge.textContent = 'IMG 404';
+            badge.style.cssText =
+              'position:absolute;top:8px;right:8px;background:#c0392b;color:#fff;' +
+              'font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px;';
+            el.appendChild(badge);
+          }
         }
       });
     }
 
-    // drag
     const handle = el.querySelector('.drag-handle');
     handle.addEventListener('mousedown', (e) => {
       e.stopPropagation();
@@ -181,7 +174,6 @@ class CanvasApp {
 
   // ===== EDGES (arrows) =====
   _renderEdges() {
-    // clear previous edge elements (keep <defs>)
     this.svg.querySelectorAll('g.edge').forEach(n => n.remove());
     this.edgeEls.clear();
 
@@ -200,7 +192,6 @@ class CanvasApp {
       path.setAttribute('marker-end', 'url(#arrowhead)');
       g.appendChild(path);
 
-      // optional label
       let labelEl = null;
       if (edge.label) {
         labelEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -213,8 +204,6 @@ class CanvasApp {
 
       this.svg.appendChild(g);
       this.edgeEls.set(edge.id || `${edge.from}-${edge.to}`, { path, label: labelEl, edge });
-
-      // initial geometry
       this._updateEdgeGeometry(fromEl, toEl, { path, label: labelEl, edge });
     }
   }
@@ -234,7 +223,6 @@ class CanvasApp {
     const a = this._anchorPoint(fromEl, edge.fromSide || edge.fromAnchor || 'auto');
     const b = this._anchorPoint(toEl,   edge.toSide   || edge.toAnchor   || 'auto');
 
-    // simple quadratic curve for nice feel
     const dx = b.x - a.x;
     const dy = b.y - a.y;
     const cx = a.x + dx * 0.5;
@@ -245,14 +233,13 @@ class CanvasApp {
 
     if (label) {
       const lx = a.x + dx * 0.5;
-      const ly = a.y + dy * 0.5 - 6; // a little above the curve midpoint
+      const ly = a.y + dy * 0.5 - 6;
       label.setAttribute('x', String(lx));
       label.setAttribute('y', String(ly));
     }
   }
 
   _anchorPoint(el, side = 'auto') {
-    // element's box in world coordinates
     const left = el._modelPos.left;
     const top  = el._modelPos.top;
     const w = el.offsetWidth;
@@ -269,7 +256,6 @@ class CanvasApp {
     if (side === 'left' || side === 'right' || side === 'top' || side === 'bottom') {
       return centers[side];
     }
-    // auto: choose the closest side towards the other node later – for now, use center.
     return centers.center;
   }
 
@@ -296,7 +282,6 @@ class CanvasApp {
     const targetScale = delta > 0 ? this.scale / zoomFactor : this.scale * zoomFactor;
     const newScale = Math.min(this.maxScale, Math.max(this.minScale, targetScale));
 
-    // zoom around cursor
     const before = this._toWorld(e.clientX, e.clientY);
     this.scale = newScale;
     const after = this._toWorld(e.clientX, e.clientY);
@@ -307,8 +292,7 @@ class CanvasApp {
   }
 
   _onMouseDownBg(e) {
-    if (e.button !== 0) return; // left button
-    // if user clicked a card handle, card will stop propagation; otherwise, pan
+    if (e.button !== 0) return;
     this.isPanning = true;
     this.container.classList.add('panning');
     this.panStart = { x: e.clientX, y: e.clientY };
@@ -316,7 +300,6 @@ class CanvasApp {
   }
 
   _onMouseMove(e) {
-    // dragging a card?
     const dragCard = [...this.cardEls.values()].find(el => el._drag);
     if (dragCard) {
       const worldPt = this._toWorld(e.clientX, e.clientY);
@@ -329,20 +312,17 @@ class CanvasApp {
       return;
     }
 
-    // panning?
     if (!this.isPanning) return;
     const dx = e.clientX - this.panStart.x;
     const dy = e.clientY - this.panStart.y;
     this.cameraX = this.cameraStart.x + dx;
     this.cameraY = this.cameraStart.y + dy;
     this._applyView();
-    // no need to update edges here; svg lives inside world and is transformed together
   }
 
   _onMouseUp() {
     this.isPanning = false;
     this.container.classList.remove('panning');
-    // stop any card drag
     for (const el of this.cardEls.values()) {
       if (el._drag) {
         el._drag = null;
