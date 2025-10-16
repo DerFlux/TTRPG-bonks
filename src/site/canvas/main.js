@@ -601,6 +601,105 @@
       URL.revokeObjectURL(url);
     });
 
+// Ensure we have a toolbar element (use existing, else create one in <body>)
+function ensureToolbar() {
+  let tb = document.querySelector('.toolbar');
+  if (!tb) {
+    tb = document.createElement('div');
+    tb.className = 'toolbar';
+    document.body.appendChild(tb);
+  }
+  return tb;
+}
+
+// Create or reuse a button by id
+function ensureButton(toolbar, id, label, title) {
+  let btn = document.getElementById(id);
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = id;
+    btn.type = 'button';
+    btn.textContent = label;
+    if (title) btn.title = title;
+    toolbar.appendChild(btn);
+  }
+  return btn;
+}
+
+// --- Save to Repo via Pages Function ---
+async function saveCanvasToRepo() {
+  const btn = document.getElementById('btn-save-repo');
+  try {
+    if (btn) {
+      btn.classList.add('saving');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+    }
+
+    const payload = {
+      // path to the canvas JSON inside your repo:
+      path: "src/site/canvas/tir.canvas.json",
+      data: window.CanvasAppInstance.getData(),
+      message: "chore(canvas): update positions from canvas UI"
+    };
+
+    const res = await fetch("/api/save-canvas", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`Save failed (${res.status}) ${txt}`);
+    }
+
+    if (btn) {
+      btn.textContent = "Saved ✓";
+      setTimeout(() => {
+        btn.textContent = "Save to Repo";
+        btn.classList.remove('saving');
+        btn.disabled = false;
+      }, 1200);
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Save failed. Open DevTools for details.");
+    if (btn) {
+      btn.textContent = "Save to Repo";
+      btn.classList.remove('saving');
+      btn.disabled = false;
+    }
+  }
+}
+
+// === Call this during boot (after the app is initialized) ===
+(function wireToolbarEnhancements() {
+  const toolbar = ensureToolbar();
+
+  // Reuse existing zoom label if you have it; otherwise create it.
+  let zoomLabel = document.getElementById('zoom-level');
+  if (!zoomLabel) {
+    const span = document.createElement('span');
+    span.id = 'zoom-level';
+    span.textContent = '100%';
+    span.style.marginLeft = '8px';
+    toolbar.appendChild(span);
+  }
+
+  // Add or reuse the Save-to-Repo button
+  const saveRepoBtn = ensureButton(toolbar, 'btn-save-repo', 'Save to Repo', 'Commit canvas positions to the repository');
+  saveRepoBtn.addEventListener('click', saveCanvasToRepo);
+
+  // If your Debug toggle is created programmatically, just re-init it here.
+  // If you used earlier code with Debug.initToggle(), call it now so it attaches to this toolbar.
+  if (typeof Debug !== 'undefined' && Debug.initToggle) {
+    Debug.initToggle();
+  }
+})();
+
+
     // add the “Debugging” toggle control (default OFF)
     Debug.initToggle();
   })();
