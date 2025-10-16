@@ -1,12 +1,11 @@
-/* ---- Pull in the site/theme CSS (hashed file is re-exported at /styles/theme.css) ---- */
 @import url("/styles/theme.css");
 
-/* =============================================================================
-   Canvas theme variable bridge
-   ============================================================================= */
+/* -------------------------------------------------------------
+   Light is the DEFAULT. We only switch to dark if the page
+   explicitly sets html[data-theme="dark"] or .theme-dark.
+   ------------------------------------------------------------- */
 :root {
-  /* If your site exposes these, we use them. Otherwise we fall back to LIGHT defaults. */
-  --cv-bg:            var(--page-bg, var(--theme-bg, #f7efe3));     /* <- light default */
+  --cv-bg:            var(--page-bg, var(--theme-bg, #f7efe3));  /* light parchment */
   --cv-surface:       var(--surface, var(--card-bg, #ffffff));
   --cv-surface-2:     var(--surface-2, #faf7f0);
 
@@ -19,31 +18,25 @@
 
   --cv-shadow:        0 8px 24px rgba(0,0,0,0.08);
 
-  /* Grid */
   --cv-grid-gap:      40px;
-  /* ultra-soft line using the border color */
   --cv-grid-line:     color-mix(in oklab, var(--cv-border), transparent 70%);
 }
 
-/* If your base theme flips to dark, these overrides will switch canvas too. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --cv-bg:         var(--theme-bg, #0f1020);
-    --cv-surface:    var(--card-bg, #17192b);
-    --cv-surface-2:  #1b1d36;
-    --cv-text:       var(--theme-fg, #e7e9ff);
-    --cv-text-muted: #bcc3ff;
-    --cv-heading:    #cfd6ff;
-    --cv-accent:     var(--theme-accent, #7aa2ff);
-    --cv-border:     var(--border-color, #2a2d4a);
-    --cv-shadow:     0 8px 24px rgba(0,0,0,0.25);
-    --cv-grid-line:  color-mix(in oklab, var(--cv-border), transparent 50%);
-  }
+/* Optional DARK palette — only if your site sets a dark theme class/attr */
+html[data-theme="dark"], .theme-dark {
+  --cv-bg:         var(--theme-bg, #0f1020);
+  --cv-surface:    var(--card-bg, #17192b);
+  --cv-surface-2:  #1b1d36;
+  --cv-text:       var(--theme-fg, #e7e9ff);
+  --cv-text-muted: #bcc3ff;
+  --cv-heading:    #cfd6ff;
+  --cv-accent:     var(--theme-accent, #7aa2ff);
+  --cv-border:     var(--border-color, #2a2d4a);
+  --cv-shadow:     0 8px 24px rgba(0,0,0,0.25);
+  --cv-grid-line:  color-mix(in oklab, var(--cv-border), transparent 50%);
 }
 
-/* =============================================================================
-   Base
-   ============================================================================= */
+/* ---------------- Base ---------------- */
 * { box-sizing: border-box; }
 html, body {
   height: 100%;
@@ -56,13 +49,11 @@ html, body {
 a { color: var(--link-color, var(--cv-accent)); }
 a:hover { text-decoration: underline; }
 
-/* =============================================================================
-   Toolbar
-   ============================================================================= */
+/* ---------------- Toolbar ---------------- */
 .toolbar {
   position: fixed; inset: 12px auto auto 12px;
   display: flex; gap: 8px; align-items: center;
-  background: color-mix(in oklab, var(--cv-bg), #000 3%); /* subtle glass on light */
+  background: color-mix(in oklab, var(--cv-bg), #000 3%);
   backdrop-filter: blur(6px);
   border: 1px solid var(--cv-border);
   border-radius: 12px;
@@ -81,20 +72,18 @@ a:hover { text-decoration: underline; }
 .toolbar button:hover { border-color: var(--cv-accent); }
 .toolbar button.saving { opacity: .75; cursor: wait; }
 
-/* =============================================================================
-   Canvas world
-   ============================================================================= */
+/* ---------------- Canvas world ---------------- */
 #canvas-container {
   position: absolute; inset: 0;
   overflow: hidden; cursor: grab;
 
-  /* Match site background, then paint a VERY soft grid on top */
-  background-color: var(--cv-bg);
+  /* FORCE light background & soft grid unless page sets dark theme */
+  background-color: var(--cv-bg) !important;
   background-image:
     linear-gradient(90deg, var(--cv-grid-line) 1px, transparent 1px),
-    linear-gradient(0deg,  var(--cv-grid-line) 1px, transparent 1px);
-  background-size: var(--cv-grid-gap) var(--cv-grid-gap);
-  background-position: 0 0, 0 0;
+    linear-gradient(0deg,  var(--cv-grid-line) 1px, transparent 1px) !important;
+  background-size: var(--cv-grid-gap) var(--cv-grid-gap) !important;
+  background-position: 0 0, 0 0 !important;
 }
 #canvas-container.panning { cursor: grabbing; }
 
@@ -103,9 +92,7 @@ a:hover { text-decoration: underline; }
   transform-origin: 0 0;
 }
 
-/* =============================================================================
-   Cards
-   ============================================================================= */
+/* ---------------- Cards ---------------- */
 .card {
   position: absolute;
   min-width: 180px; max-width: 340px;
@@ -140,55 +127,25 @@ a:hover { text-decoration: underline; }
   border-radius: 10px;
 }
 
-/* =============================================================================
-   Markdown (Obsidian-like)
-   ============================================================================= */
-.card .md-body {
-  font-size: 0.95rem;
-  line-height: 1.45;
-  color: var(--cv-text);
+/* ---------------- Markdown ---------------- */
+.card .md-body { font-size: .95rem; line-height: 1.45; color: var(--cv-text); }
+.card .md-body h1,.card .md-body h2,.card .md-body h3{ margin:.25rem 0 .35rem; color: var(--cv-heading); }
+.card .md-body h4,.card .md-body h5,.card .md-body h6{ margin:.2rem 0 .25rem; color: var(--cv-heading); font-weight:600; }
+.card .md-body p { margin:.35rem 0; color: var(--cv-text-muted); }
+.card .md-body ul,.card .md-body ol { padding-left:1.25rem; margin:.25rem 0; }
+.card .md-body li { margin:.15rem 0; }
+.card .md-body input[type="checkbox"]{ transform: translateY(1px); }
+.card .md-body blockquote{
+  margin:.25rem 0; padding:.25rem .5rem; border-left:3px solid var(--cv-accent);
+  background: color-mix(in oklab, var(--cv-accent), transparent 92%); color: var(--cv-text); border-radius: 6px;
 }
-.card .md-body h1,
-.card .md-body h2,
-.card .md-body h3 { margin: .25rem 0 .35rem; color: var(--cv-heading); }
-.card .md-body h4,
-.card .md-body h5,
-.card .md-body h6 { margin: .2rem 0 .25rem; color: var(--cv-heading); font-weight: 600; }
+.card .md-body code{ padding:.1rem .25rem; border-radius:4px; background: color-mix(in oklab, var(--cv-text), transparent 92%); }
+.card .md-body pre{ padding:.5rem .75rem; border-radius:.5rem; overflow:auto; background: color-mix(in oklab, var(--cv-text), transparent 92%); }
+.card .md-body pre code{ background:transparent; padding:0; }
+.card .md-body img{ display:block; max-width:100%; height:auto; border-radius:.4rem; }
+.card .md-body mark{ background:#fff59d; padding:0 .15em; border-radius:.2em; }
 
-.card .md-body p { margin: .35rem 0; color: var(--cv-text-muted); }
-.card .md-body ul,
-.card .md-body ol { padding-left: 1.25rem; margin: .25rem 0; }
-.card .md-body li { margin: .15rem 0; }
-.card .md-body input[type="checkbox"] { transform: translateY(1px); }
-
-.card .md-body blockquote {
-  margin: .25rem 0; padding: .25rem .5rem;
-  border-left: 3px solid var(--cv-accent);
-  background: color-mix(in oklab, var(--cv-accent), transparent 92%);
-  color: var(--cv-text);
-  border-radius: 6px;
-}
-
-.card .md-body code {
-  padding: .1rem .25rem; border-radius: 4px;
-  background: color-mix(in oklab, var(--cv-text), transparent 92%);
-}
-.card .md-body pre {
-  padding: .5rem .75rem; border-radius: .5rem; overflow: auto;
-  background: color-mix(in oklab, var(--cv-text), transparent 92%);
-}
-.card .md-body pre code { background: transparent; padding: 0; }
-
-.card .md-body img {
-  display:block; max-width:100%; height:auto; border-radius: .4rem;
-}
-.card .md-body mark {
-  background: #fff59d; padding: 0 .15em; border-radius: .2em;
-}
-
-/* =============================================================================
-   Debug badges (toggled by your Debug switch)
-   ============================================================================= */
+/* ---------------- Debug badge ---------------- */
 .canvas-debug .card .debug-badge {
   position:absolute; top:8px; right:8px;
   background:#c0392b; color:#fff; font:bold 11px/1.6 monospace;
