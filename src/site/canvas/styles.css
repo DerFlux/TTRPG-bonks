@@ -1,42 +1,90 @@
+/* ---- Pull in the site/theme CSS (hashed file is re-exported at /styles/theme.css) ---- */
+@import url("/styles/theme.css");
+
+/* =============================================================================
+   Canvas theme variable bridge
+   We try to read common site variables first, then fall back to the old canvas
+   palette so this works even if some tokens don’t exist in the base theme.
+   ============================================================================= */
 :root {
-  --bg: #0f1020;
-  --grid: #1b1d36;
-  --card: #17192b;
-  --card-border: #2a2d4a;
-  --card-text: #e7e9ff;
-  --accent: #7aa2ff;
+  /* Backgrounds */
+  --cv-bg:            var(--page-bg, var(--theme-bg, var(--color-bg, #0f1020)));
+  --cv-surface:       var(--surface, var(--card-bg, #17192b));
+  --cv-surface-2:     var(--surface-2, #1b1d36);
+
+  /* Text */
+  --cv-text:          var(--body-fg, var(--theme-fg, #e7e9ff));
+  --cv-text-muted:    var(--muted-fg, #bcc3ff);
+  --cv-heading:       var(--heading-fg, #cfd6ff);
+
+  /* Accent & borders */
+  --cv-accent:        var(--link-color, var(--theme-accent, #7aa2ff));
+  --cv-border:        var(--border-color, var(--card-border, #2a2d4a));
+
+  /* Shadows / specials */
+  --cv-shadow:        0 8px 24px rgba(0,0,0,0.25);
+  --cv-grid:          var(--grid-color, var(--cv-surface-2));
 }
 
-* { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--card-text); }
+/* Allow easy theming per mode if your base theme sets data attributes */
+html[data-theme="light"] {
+  --cv-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
 
+/* =============================================================================
+   Base
+   ============================================================================= */
+* { box-sizing: border-box; }
+html, body {
+  height: 100%;
+  margin: 0;
+  /* Let the site/theme declare the font stack. If none, fall back: */
+  font-family: var(--font-body, inherit), system-ui, Segoe UI, Roboto, Arial, sans-serif;
+  background: var(--cv-bg);
+  color: var(--cv-text);
+}
+
+/* Links inherit site rules; ensure visible on cards/grid */
+a { color: var(--link-color, var(--cv-accent)); }
+a:hover { text-decoration: underline; }
+
+/* =============================================================================
+   Toolbar
+   ============================================================================= */
 .toolbar {
   position: fixed; inset: 12px auto auto 12px;
   display: flex; gap: 8px; align-items: center;
-  background: rgba(15,16,32,0.8); backdrop-filter: blur(6px);
-  border: 1px solid #222547; border-radius: 12px;
+  background: color-mix(in oklab, var(--cv-bg), #000 30%);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--cv-border);
+  border-radius: 12px;
   padding: 8px 10px; z-index: 10;
 }
 
 .toolbar .spacer { width: 16px; display: inline-block; }
 
 .toolbar button {
-  background: var(--card);
-  color: var(--card-text);
-  border: 1px solid var(--card-border);
+  background: var(--cv-surface);
+  color: var(--cv-text);
+  border: 1px solid var(--cv-border);
   border-radius: 8px;
   padding: 6px 10px;
   cursor: pointer;
+  font: inherit;
 }
-.toolbar button:hover { border-color: var(--accent); }
+.toolbar button:hover { border-color: var(--cv-accent); }
+.toolbar button.saving { opacity: .75; cursor: wait; }
 
+/* =============================================================================
+   Canvas world
+   ============================================================================= */
 #canvas-container {
   position: absolute; inset: 0;
   overflow: hidden; cursor: grab;
   background:
-    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.03), transparent 400px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0/40px 40px,
-    linear-gradient(0deg, var(--grid) 1px, transparent 1px) 0 0/40px 40px;
+    radial-gradient(circle at 30% 20%, color-mix(in oklab, #fff 3%, transparent), transparent 400px),
+    linear-gradient(90deg, var(--cv-grid) 1px, transparent 1px) 0 0/40px 40px,
+    linear-gradient(0deg,  var(--cv-grid) 1px, transparent 1px) 0 0/40px 40px;
 }
 #canvas-container.panning { cursor: grabbing; }
 
@@ -45,51 +93,94 @@ html, body { height: 100%; margin: 0; font-family: system-ui, Segoe UI, Roboto, 
   transform-origin: 0 0;
 }
 
+/* =============================================================================
+   Cards
+   ============================================================================= */
 .card {
   position: absolute;
-  min-width: 180px; max-width: 320px;
+  min-width: 180px; max-width: 340px;
   padding: 10px 12px;
-  border: 1px solid var(--card-border);
-  background: var(--card);
+  border: 1px solid var(--cv-border);
+  background: var(--cv-surface);
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  box-shadow: var(--cv-shadow);
   user-select: none;
 }
 
 .card h3 {
-  margin: 0 0 6px 0; font-size: 16px; color: #cfd6ff;
+  margin: 0 0 6px 0;
+  font-size: 16px;
+  color: var(--cv-heading);
+  line-height: 1.3;
 }
-.card p { margin: 0; font-size: 14px; line-height: 1.35; color: #bcc3ff; }
+.card p { margin: 0; font-size: 14px; line-height: 1.35; color: var(--cv-text-muted); }
 
 .card .drag-handle {
   position: absolute; inset: -6px -6px auto auto;
   width: 18px; height: 18px; border-radius: 50%;
-  background: var(--accent); opacity: 0.9;
-  cursor: grab; box-shadow: 0 4px 10px rgba(122,162,255,.4);
+  background: var(--cv-accent); opacity: 0.9;
+  cursor: grab; box-shadow: 0 4px 10px color-mix(in oklab, var(--cv-accent), transparent 60%);
 }
 .card.dragging .drag-handle { cursor: grabbing; }
 
-/* canvas/styles.css (add) */
+/* Images inside cards */
+.card img[data-role="card-img"] {
+  display: block;
+  max-width: 100%; height: auto;
+  border-radius: 10px;
+}
+
+/* =============================================================================
+   Markdown (Obsidian-like)
+   ============================================================================= */
 .card .md-body {
   font-size: 0.95rem;
   line-height: 1.45;
+  color: var(--cv-text);
 }
 .card .md-body h1,
 .card .md-body h2,
-.card .md-body h3 { margin: .25rem 0 .35rem; }
+.card .md-body h3 { margin: .25rem 0 .35rem; color: var(--cv-heading); }
+.card .md-body h4,
+.card .md-body h5,
+.card .md-body h6 { margin: .2rem 0 .25rem; color: var(--cv-heading); font-weight: 600; }
+
+.card .md-body p { margin: .35rem 0; color: var(--cv-text-muted); }
 .card .md-body ul,
 .card .md-body ol { padding-left: 1.25rem; margin: .25rem 0; }
+.card .md-body li { margin: .15rem 0; }
+.card .md-body input[type="checkbox"] { transform: translateY(1px); }
+
 .card .md-body blockquote {
   margin: .25rem 0; padding: .25rem .5rem;
-  border-left: 3px solid var(--theme-accent, #6e7aff);
-  color: var(--muted-fg, #666);
+  border-left: 3px solid var(--cv-accent);
+  background: color-mix(in oklab, var(--cv-accent), transparent 92%);
+  color: var(--cv-text);
+  border-radius: 6px;
 }
+
 .card .md-body code {
-  padding: .1rem .25rem; border-radius: 4px; background: rgba(127,127,127,.12);
+  padding: .1rem .25rem; border-radius: 4px;
+  background: color-mix(in oklab, var(--cv-text), transparent 86%);
 }
 .card .md-body pre {
   padding: .5rem .75rem; border-radius: .5rem; overflow: auto;
-  background: rgba(127,127,127,.12);
+  background: color-mix(in oklab, var(--cv-text), transparent 86%);
 }
-.card .md-body img { display:block; max-width:100%; height:auto; border-radius: .4rem; }
-.card .md-body mark { background: #fff59d; padding: 0 .15em; border-radius: .2em; }
+.card .md-body pre code { background: transparent; padding: 0; }
+
+.card .md-body img {
+  display:block; max-width:100%; height:auto; border-radius: .4rem;
+}
+.card .md-body mark {
+  background: #fff59d; padding: 0 .15em; border-radius: .2em;
+}
+
+/* =============================================================================
+   Debug badges (toggled by your Debug switch)
+   ============================================================================= */
+.canvas-debug .card .debug-badge {
+  position:absolute; top:8px; right:8px;
+  background:#c0392b; color:#fff; font:bold 11px/1.6 monospace;
+  padding:2px 6px; border-radius:6px;
+}
