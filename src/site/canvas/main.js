@@ -1,4 +1,4 @@
-// main.js — controller with manifest resolve, enrichment, debug, safe save (passworded), and left-biased fit
+// main.js — controller with manifest resolve, enrichment, debug (global), safe save (passworded), left-biased fit
 (function () {
   const $ = (q, r=document) => r.querySelector(q);
   const container = $('#canvas-container');
@@ -6,7 +6,7 @@
   const app = new CanvasApp(container, world);
   window.CanvasAppInstance = app;
 
-  // ---------- Debug toggle (default OFF) ----------
+  // ---------- Debug (GLOBAL) ----------
   const Debug = (() => {
     let on = false;
     try {
@@ -30,15 +30,25 @@
       const cb = wrap.querySelector('#debug-toggle');
       cb.checked = on; cb.addEventListener('change', () => set(cb.checked));
     }
-    set(on); return { isOn: () => on, initToggle };
+    set(on);
+    return { isOn: () => on, set, initToggle };
   })();
+  // expose globally so other scripts can check
+  window.Debug = Debug;
 
-  // ---------- Helpers (slugging, images, manifest) ----------
+  // ---------- Helpers ----------
   const isImg = p => /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(p||"");
   const encodeSegs = p => p.split('/').map(encodeURIComponent).join('/');
   const sanitize = p => { let s=String(p||'').replace(/[|]+$/g,'').replace(/\/{2,}/g,'/'); if(!s.startsWith('/')) s='/'+s; return s; };
   const slug = s => String(s||'').replace(/&/g,' and ').trim().replace(/\./g,' ').replace(/[^\p{L}\p{N}]+/gu,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').toLowerCase();
-
+  const extractEmbeds = (txt) => {
+    const out = []; const re=/!\[\[([^|\]]+)(?:\|[^]]*)?\]\]/g; let m;
+    const s = String(txt||'');
+    while ((m=re.exec(s))!==null) { let f=m[1].trim(); if(!/[\/\\]/.test(f)) f='Images/'+f; out.push(f); }
+    return out;
+  };
+  const stripEmbeds = s => String(s||'').replace(/!\[\[[^\]]+\]\]/g,'').trim();
+  const titleDesc = txt => { const lines=String(txt||'').split(/\r?\n/); const t=(lines[0]||'').replace(/^#+\s*/,'').trim()||'Text'; const d=lines.slice(1).join('\n').trim(); return {title:t, desc:d}; };
   const noteUrlFromVault = (vp) => {
     if (!vp || isImg(vp)) return null;
     const parts = vp.replace(/\.md$/i,'').split('/').map((seg,i)=>{
@@ -48,16 +58,6 @@
     }).filter(Boolean);
     return sanitize(parts.join('/') + '/');
   };
-
-  const extractEmbeds = (txt) => {
-    const out = []; const re=/!\[\[([^|\]]+)(?:\|[^]]*)?\]\]/g; let m;
-    const s = String(txt||'');
-    while ((m=re.exec(s))!==null) { let f=m[1].trim(); if(!/[\/\\]/.test(f)) f='Images/'+f; out.push(f); }
-    return out;
-  };
-  const stripEmbeds = s => String(s||'').replace(/!\[\[[^\]]+\]\]/g,'').trim();
-  const titleDesc = txt => { const lines=String(txt||'').split(/\r?\n/); const t=(lines[0]||'').replace(/^#+\s*/,'').trim()||'Text'; const d=lines.slice(1).join('\n').trim(); return {title:t, desc:d}; };
-
   const imageCandidatesFromVault = (vp) => {
     if (!vp) return [];
     const stripped = vp.replace(/^Images\//i, '');
@@ -72,7 +72,6 @@
     c.push('/img/user/Images/'+encodeSegs(stripped), '/img/user/images/'+encodeSegs(stripped), '/img/'+encodeSegs(stripped), '/img/Images/'+encodeSegs(stripped), '/canvas/Images/'+encodeSegs(stripped));
     return Array.from(new Set(c));
   };
-
   const nameImageGuesses = (title) => {
     if (!title) return [];
     const base = title.replace(/\.[^.]+$/,'');
@@ -87,7 +86,7 @@
     return out;
   };
 
-  // Manifest
+  // ---------- Manifest ----------
   let M = null;
   async function loadManifest() {
     try {
@@ -205,6 +204,17 @@
     pageCache.set(url, p); return p;
   }
 
+  // Add a small helper to badge cards (used for ENR404/NO CONTENT)
+  function addBadge(itemId, text, bg = '#555') {
+    if (!Debug.isOn()) return;
+    const el = [...document.querySelectorAll('.card')].find(n => n._itemId === itemId);
+    if (!el) return;
+    const b = document.createElement('div');
+    b.textContent = text;
+    b.style.cssText = `position:absolute;top:8px;left:8px;background:${bg};color:#fff;font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px;`;
+    el.appendChild(b);
+  }
+
   // ---------- Adapt Obsidian JSON → viewer data ----------
   function adaptCanvas(json) {
     const items = []; const edges = [];
@@ -258,8 +268,12 @@
               if (it.imageCandidates) cands.push(...it.imageCandidates);
               it.imageCandidates = Array.from(new Set(cands));
               if (info.teaser) it.description = it.description ? `${it.description}\n${info.teaser}` : info.teaser;
+              if ((!info.teaser?.trim()) && (!it.imageCandidates?.length)) {
+                addBadge(it.id, 'NO CONTENT', '#7f8c8d');
+              }
               app.render();
             } catch (e) {
+              addBadge(it.id, 'ENR 404', '#555');
               if (Debug.isOn()) console.warn('Enrich failed for', it.link, e);
             } finally {
               delete it._needsEnrich; delete it._nameGuesses; active--; q.length ? pump() : !active && done();
@@ -336,6 +350,7 @@
     };
     ensureBtn(tb,'btn-save-repo','Save to Repo','Commit canvas positions to repository').onclick = savePositionsToRepo;
     if (!$('#zoom-level')) { const span=document.createElement('span'); span.id='zoom-level'; span.textContent='100%'; span.style.marginLeft='8px'; tb.appendChild(span); }
+    // attach debug toggle AFTER toolbar exists
     Debug.initToggle();
   }
 
@@ -351,11 +366,8 @@
       resolveLinks(app);
       await enrich(app);
 
-      // Initial left-biased fit and slightly more zoomed out than a perfect fit:
-      //  - bias: 'left' starts the content flush-left (you moved lots of notes left)
-      //  - zoomOut: 1.25 means "25% more zoomed out" than perfect fit
+      // Initial left-biased fit and slightly more zoomed out
       app.fitToView({ margin: 160, bias: 'left', zoomOut: 1.25, extraShiftX: 0 });
-
     } catch (e) {
       if (Debug.isOn()) console.error('Failed to load/enrich canvas:', e);
       app.setData({ items: [], edges: [] });
@@ -364,7 +376,7 @@
     wireToolbar();
   })();
 
-  // ---------- Adapt function (same as in your previous version) ----------
+  // ---------- Adapt (same as above helper, kept local) ----------
   function adaptCanvas(json) {
     const items = []; const edges = [];
     for (const n of json.nodes || []) {
