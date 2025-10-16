@@ -1,5 +1,6 @@
 // main.js — controller with manifest resolve, enrichment, debug (global),
-// link rewriting to correct published URLs, safe save (passworded), left-biased fit.
+// link rewriting to correct published URLs, safe save (passworded), left-biased fit,
+// and **UPLOAD .canvas** to repo + live reload.
 (function () {
   const $ = (q, r=document) => r.querySelector(q);
   const container = $('#canvas-container');
@@ -47,13 +48,9 @@
   const slug = s => String(s||'').replace(/&/g,' and ').trim().replace(/\./g,' ').replace(/[^\p{L}\p{N}]+/gu,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').toLowerCase();
   const stripExt = p => String(p||'').replace(/\.[a-z0-9]+$/i,'');
   const lastSeg = p => { const a=String(p||'').split('/'); return a[a.length-1]||''; };
-  const twoSeg = p => {
-    const a = String(p||"").split("/").filter(Boolean);
-    return a.slice(-2).join("/");
-  };
+  const twoSeg = p => { const a=String(p||"").split("/").filter(Boolean); return a.slice(-2).join("/"); };
   const norm = p => slug(stripExt(p));
 
-  /* Extract/strip Obsidian image embeds from text nodes */
   const extractEmbeds = (txt) => {
     const out = []; const re=/!\[\[([^|\]]+)(?:\|[^]]*)?\]\]/g; let m;
     const s = String(txt||'');
@@ -63,7 +60,6 @@
   const stripEmbeds = s => String(s||'').replace(/!\[\[[^\]]+\]\]/g,'').trim();
   const titleDesc = txt => { const lines=String(txt||'').split(/\r?\n/); const t=(lines[0]||'').replace(/^#+\s*/,'').trim()||'Text'; const d=lines.slice(1).join('\n').trim(); return {title:t, desc:d}; };
 
-  /* Build a fallback site URL from a vault path */
   const noteUrlFromVault = (vp) => {
     if (!vp || isImg(vp)) return null;
     const parts = vp.replace(/\.md$/i,'').split('/').map((seg,i)=>{
@@ -74,7 +70,6 @@
     return sanitize(parts.join('/') + '/');
   };
 
-  /* Image candidate helpers */
   const imageCandidatesFromVault = (vp) => {
     if (!vp) return [];
     const stripped = vp.replace(/^Images\//i, '');
@@ -177,8 +172,6 @@
   /* ===========================
      LINK REWRITING (DOM-level)
      =========================== */
-
-  // Aliases to resolve plain text or ambiguous links.
   const LINK_ALIAS = new Map([
     ["Avalon", "Avalon (Between Astra & Terra)"],
     ["Hikoboshi Koi", "Hikoboshi Koi"],
@@ -196,66 +189,34 @@
     if (!M) await loadManifest();
     return M;
   }
-
-  function pickBest(arr) {
-    if (!arr || !arr.length) return null;
-    return arr.find(e => e.url) || arr[0];
-  }
-
+  function pickBest(arr) { if (!arr || !arr.length) return null; return arr.find(e => e.url) || arr[0]; }
   async function resolveUrlFromHrefOrText(href, text) {
     await ensureManifestIndexForLinks();
     const byStem = M.byKey;
     const byTitle = M.byTitle;
-
-    // absolute external -> keep
     if (/^https?:\/\//i.test(href)) return href;
-
     const hClean = decodeURIComponent(href || "").replace(/^\/+/, "").replace(/&amp;/gi, "and");
     const stem1  = norm(hClean);
     const stem2  = norm(lastSeg(hClean));
     const stem3  = norm(twoSeg(hClean));
-
-    // try stems
     let arr = byStem.get(stem1) || byStem.get('/'+stem1);
     let hit = pickBest(arr) || pickBest(byStem.get(stem2)) || pickBest(byStem.get(stem3));
-    if (hit && hit.url) return hit.url;
-
-    // image href but text is the title
+    if (hit?.url) return hit.url;
     const looksImage = /\.[a-z0-9]{3,4}$/i.test(hClean);
-    if (looksImage && text) {
-      const tNorm = norm(text);
-      hit = pickBest(byTitle.get(tNorm));
-      if (hit && hit.url) return hit.url;
-    }
-
-    // try href as title directly
-    hit = pickBest(byTitle.get(stem1));
-    if (hit && hit.url) return hit.url;
-
-    // try alias via text or href
-    const aliasKey =
-      (text && LINK_ALIAS.has(text)) ?
-        text :
-        [...LINK_ALIAS.keys()].find(k => slug(k) === stem1);
-    if (aliasKey) {
-      const target = LINK_ALIAS.get(aliasKey);
-      hit = pickBest(byTitle.get(norm(target)));
-      if (hit && hit.url) return hit.url;
-    }
-
-    // fallback: leave original
+    if (looksImage && text) { const tNorm = norm(text); hit = pickBest(byTitle.get(tNorm)); if (hit?.url) return hit.url; }
+    hit = pickBest(byTitle.get(stem1)); if (hit?.url) return hit.url;
+    const aliasKey = (text && LINK_ALIAS.has(text)) ? text : [...LINK_ALIAS.keys()].find(k => slug(k) === stem1);
+    if (aliasKey) { const target = LINK_ALIAS.get(aliasKey); hit = pickBest(byTitle.get(norm(target))); if (hit?.url) return hit.url; }
     return href;
   }
-
   async function rewriteLinksInDOM(root=document) {
     const anchors = root.querySelectorAll('.card .md-body a[href]');
-    const jobs = Array.from(anchors).map(async a => {
+    await Promise.all(Array.from(anchors).map(async a => {
       const href = a.getAttribute('href') || '';
       const txt = a.textContent.trim();
       const newHref = await resolveUrlFromHrefOrText(href, txt);
       a.setAttribute('href', newHref);
-    });
-    await Promise.all(jobs);
+    }));
   }
 
   /* ===========================
@@ -359,7 +320,6 @@
       delete it._needsManifestResolve;
     }
     app.render();
-    // After render, rewrite any anchors inside cards to real published URLs
     rewriteLinksInDOM().catch(() => {});
   }
 
@@ -379,9 +339,7 @@
               if (it.imageCandidates) cands.push(...it.imageCandidates);
               it.imageCandidates = Array.from(new Set(cands));
               if (info.teaser) it.description = it.description ? `${it.description}\n${info.teaser}` : info.teaser;
-              if ((!info.teaser?.trim()) && (!it.imageCandidates?.length)) {
-                addBadge(it.id, 'NO CONTENT', '#7f8c8d');
-              }
+              if ((!info.teaser?.trim()) && (!it.imageCandidates?.length)) addBadge(it.id, 'NO CONTENT', '#7f8c8d');
               app.render();
               await rewriteLinksInDOM();
             } catch (e) {
@@ -452,6 +410,110 @@
   }
 
   /* ===========================
+     UPLOAD .canvas → commit & load
+     =========================== */
+  async function commitFileToRepo(path, dataObj, message){
+    let auth = localStorage.getItem('canvasSaveAuth');
+    if (!auth) {
+      auth = prompt('Enter canvas save password:') || '';
+      if (!auth) throw new Error('No password provided');
+      localStorage.setItem('canvasSaveAuth', auth);
+    }
+    const payload = { path, data: dataObj, message, auth };
+    const r = await fetch('/api/save-canvas', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(payload)
+    });
+    if (r.status === 401) {
+      localStorage.removeItem('canvasSaveAuth');
+      throw new Error('Unauthorized (bad password)');
+    }
+    if (!r.ok) throw new Error(`Commit failed ${r.status}`);
+    return r.json().catch(()=> ({}));
+  }
+
+  async function loadCanvasObject(json){
+    // Merge in positions if present
+    let obsidian = json;
+    try {
+      const pos = await tryLoadPositions();
+      if (pos) obsidian = applyPositions(obsidian, pos);
+    } catch {}
+    const data = adaptCanvas(obsidian);
+    app.setData(data);
+    resolveLinks(app);
+    await enrich(app);
+    app.fitToView({ margin: 160, bias: 'left', zoomOut: 1.25, extraShiftX: 0 });
+    await rewriteLinksInDOM();
+  }
+
+  function wireUploadUI(tb){
+    // hidden file input
+    let fi = $('#canvas-file-input');
+    if (!fi) {
+      fi = document.createElement('input');
+      fi.type = 'file';
+      fi.accept = '.canvas,application/json';
+      fi.id = 'canvas-file-input';
+      fi.style.display = 'none';
+      document.body.appendChild(fi);
+    }
+    const btn = ensureBtn(tb, 'btn-upload-canvas', 'Upload .canvas', 'Replace tir.canvas.json with a file and reload');
+    btn.onclick = async () => {
+      fi.value = '';
+      fi.onchange = async () => {
+        const f = fi.files?.[0];
+        if (!f) return;
+        try {
+          btn.disabled = true; btn.textContent = 'Uploading…';
+          const text = await f.text();
+          const json = JSON.parse(text);
+
+          // basic sanity
+          if (!json || !Array.isArray(json.nodes) || !Array.isArray(json.edges)) {
+            throw new Error('Not a valid Obsidian .canvas JSON');
+          }
+
+          // Commit to repo
+          await commitFileToRepo('src/site/canvas/tir.canvas.json', json, `chore(canvas): replace tir.canvas.json via upload (${f.name})`);
+
+          // Load immediately
+          await loadCanvasObject(json);
+
+          btn.textContent = 'Uploaded ✓';
+          setTimeout(()=>{ btn.textContent='Upload .canvas'; btn.disabled=false; }, 1200);
+        } catch (e) {
+          console.error(e);
+          alert('Upload failed. See console for details.');
+          btn.textContent = 'Upload .canvas';
+          btn.disabled = false;
+        }
+      };
+      fi.click();
+    };
+
+    // Optional: drag & drop anywhere
+    window.addEventListener('dragover', e => { e.preventDefault(); });
+    window.addEventListener('drop', async e => {
+      if (!e.dataTransfer) return;
+      const f = [...e.dataTransfer.files].find(x => /\.canvas$/i.test(x.name) || /json$/i.test(x.name));
+      if (!f) return;
+      e.preventDefault();
+      try {
+        const text = await f.text();
+        const json = JSON.parse(text);
+        await commitFileToRepo('src/site/canvas/tir.canvas.json', json, `chore(canvas): replace tir.canvas.json via drag&drop (${f.name})`);
+        await loadCanvasObject(json);
+      } catch (err) {
+        console.error(err);
+        alert('Drag & drop upload failed.');
+      }
+    });
+  }
+
+  /* ===========================
      Toolbar
      =========================== */
   function ensureToolbar(){ let tb=$('.toolbar'); if(!tb){ tb=document.createElement('div'); tb.className='toolbar'; document.body.appendChild(tb); } return tb; }
@@ -464,6 +526,9 @@
       const url = URL.createObjectURL(blob); const a=Object.assign(document.createElement('a'),{href:url,download:'data.json'}); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
     };
     ensureBtn(tb,'btn-save-repo','Save to Repo','Commit canvas positions to repository').onclick = savePositionsToRepo;
+
+    wireUploadUI(tb);
+
     if (!$('#zoom-level')) { const span=document.createElement('span'); span.id='zoom-level'; span.textContent='100%'; span.style.marginLeft='8px'; tb.appendChild(span); }
     Debug.initToggle();
   }
@@ -494,7 +559,7 @@
   })();
 
   /* ===========================
-     (local) adaptCanvas helper
+     (local) adaptCanvas helper (duplicate guard for bundlers)
      =========================== */
   function adaptCanvas(json) {
     const items = []; const edges = [];
