@@ -1,4 +1,4 @@
-// canvas.js — viewer with arrows, drag, pan/zoom, and fit-to-view
+// canvas.js — viewer with arrows, drag, pan/zoom, fit-to-view, and debug-aware IMG 404 badges
 class CanvasApp {
   constructor(container, world) {
     this.container = container;
@@ -109,7 +109,7 @@ class CanvasApp {
       img.style.cssText = 'display:block; max-width:100%; height:auto;';
       let i = 0; img.src = cands[i];
       img.onerror = () => {
-        const debugOn = document.documentElement.classList.contains('canvas-debug');
+        const debugOn = !!(window.Debug && window.Debug.isOn && window.Debug.isOn());
         if (++i < cands.length) {
           if (debugOn) console.warn('Image candidate failed:', cands[i - 1]);
           img.src = cands[i];
@@ -287,7 +287,7 @@ class CanvasApp {
     const bias = (opts.bias || 'center').toLowerCase();
     if (bias.includes('right')) camX = vw - (worldOriginX + contentW) * scale;
     if (bias.includes('bottom')) camY = vh - (worldOriginY + contentH) * scale;
-    if (bias.includes('left'))  camX = -worldOriginX * scale;       // push content flush-left
+    if (bias.includes('left'))  camX = -worldOriginX * scale;       // flush-left
     if (bias.includes('top'))   camY = -worldOriginY * scale;
 
     if (typeof opts.extraShiftX === 'number') camX += opts.extraShiftX;
@@ -297,8 +297,8 @@ class CanvasApp {
   }
 
   resetView() {
-    // You can still offer a true reset, but most folks prefer fit-to-view:
-    this.fitToView({ margin: 120, bias: 'left', zoomOut: 1.25, extraShiftX: 0 });
+    // left-biased fit + slightly zoomed out
+    this.fitToView({ margin: 160, bias: 'left', zoomOut: 1.25, extraShiftX: 0 });
   }
 
   _onWheel(e) {
