@@ -518,8 +518,8 @@ module.exports = function (eleventyConfig) {
 eleventyConfig.addPassthroughCopy("src/site/img");
 eleventyConfig.addPassthroughCopy("src/site/scripts");
 eleventyConfig.addPassthroughCopy("src/site/styles/_theme.*.css");
+eleventyConfig.addPassthroughCopy("src/site/styles/theme.css"); // Theme for Canvas Program
 eleventyConfig.addPassthroughCopy({ "src/site/canvas": "canvas" });
-// .eleventy.js (with your other passthroughs)
 eleventyConfig.addPassthroughCopy({ "src/site/notes/Images": "img/user/Images" });
 
 
