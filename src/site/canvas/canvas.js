@@ -1,4 +1,4 @@
-// canvas.js — viewer with arrows, drag, pan/zoom, fit-to-view, and debug-aware IMG 404 badges
+// canvas.js — viewer with arrows + Obsidian-style Markdown rendering in cards
 class CanvasApp {
   constructor(container, world) {
     this.container = container;
@@ -127,8 +127,11 @@ class CanvasApp {
       ? `<a href="${this._escape(item.link)}" target="_blank" rel="noopener">${title}</a>`
       : title;
 
-    const p = item.description ? document.createElement('p') : null;
-    if (p) p.textContent = item.description;
+    // description — render Markdown
+    const desc = item.description || '';
+    const md = document.createElement('div');
+    md.className = 'md-body';
+    md.innerHTML = this._renderMarkdown(desc);
 
     const drag = document.createElement('div');
     drag.className = 'drag-handle';
@@ -143,7 +146,7 @@ class CanvasApp {
     el.append(drag);
     if (imgWrap) el.append(imgWrap);
     el.append(h);
-    if (p) el.append(p);
+    if (desc) el.append(md);
     return el;
   }
 
@@ -242,11 +245,7 @@ class CanvasApp {
   }
 
   /**
-   * Fit all cards into view with margin. Options:
-   *  - margin (px)
-   *  - bias: 'center' | 'left' | 'right' | 'top-left' | 'bottom-left' (default 'center')
-   *  - zoomOut: multiply the computed fit scale by this (e.g., 1.2 to zoom out a bit more)
-   *  - extraShiftX / extraShiftY: additional camera pixel shifts after fit
+   * Fit all cards into view with margin.
    */
   fitToView(opts = {}) {
     const { width: vw, height: vh } = this.container.getBoundingClientRect();
@@ -371,6 +370,186 @@ class CanvasApp {
   }
   _escape(s) {
     return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  // ---------- Obsidian-style Markdown renderer (safe subset) ----------
+  _renderMarkdown(src) {
+    // 0) Normalize newlines
+    let text = String(src ?? '').replace(/\r\n?/g, '\n');
+
+    // 1) Extract fenced code blocks first (protect from further formatting)
+    const codeStore = [];
+    text = text.replace(/```([\w-]+)?\n([\s\S]*?)```/g, (m, lang, code) => {
+      const idx = codeStore.push({ lang: (lang||'').trim(), code }) - 1;
+      return `\u0000CODEBLOCK_${idx}\u0000`;
+    });
+
+    // 2) Escape all HTML
+    const escapeHtml = (s) => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    text = escapeHtml(text);
+
+    // 3) Headings (#..)
+    text = text.replace(
+      /^(#{1,6})[ \t]+(.+?)\s*$/gm,
+      (m, hashes, content) => `<h${hashes.length}>${content.trim()}</h${hashes.length}>`
+    );
+
+    // 4) Horizontal rules
+    text = text.replace(/^(?:\*\s*\*\s*\*|-{3,}|_{3,})\s*$/gm, '<hr/>');
+
+    // 5) Blockquotes
+    text = text.replace(/^(>+)\s?(.*)$/gm, (m, level, c) => {
+      const inner = c || '';
+      const depth = level.length;
+      return '<blockquote>'.repeat(depth) + inner + '</blockquote>'.repeat(depth);
+    });
+
+    // 6) Lists (unordered, ordered, task)
+    // Convert contiguous list lines into <ul>/<ol> blocks (simple, supports up to 4 levels by indent)
+    const listify = (input) => {
+      const lines = input.split('\n');
+      const out = [];
+      const stack = []; // {type:'ul'|'ol', indent}
+      const flushTo = (indent) => {
+        while (stack.length && stack[stack.length-1].indent >= indent) {
+          const last = stack.pop();
+          out.push(`</${last.type}>`);
+        }
+      };
+      const openList = (type, indent) => {
+        stack.push({ type, indent });
+        out.push(`<${type}>`);
+      };
+
+      const listItem = (content, checkbox) => {
+        if (checkbox === 'x' || checkbox === 'X') {
+          return `<li><input type="checkbox" checked disabled> ${content}</li>`;
+        } else if (checkbox === ' ') {
+          return `<li><input type="checkbox" disabled> ${content}</li>`;
+        }
+        return `<li>${content}</li>`;
+      };
+
+      const uRe = /^(\s*)([-+*])\s+(.*)$/;
+      const oRe = /^(\s*)(\d+)([.)])\s+(.*)$/;
+      const tRe = /^(\s*)[-+*]\s+\[([ xX])\]\s+(.*)$/;
+
+      for (let i=0;i<lines.length;i++){
+        const raw = lines[i];
+
+        // Task list
+        let m = tRe.exec(raw);
+        if (m) {
+          const indent = m[1].length;
+          const content = m[3];
+          flushTo(indent);
+          if (!stack.length || stack[stack.length-1].type!=='ul' || stack[stack.length-1].indent<indent) {
+            openList('ul', indent);
+          }
+          out.push(listItem(content, m[2]));
+          continue;
+        }
+
+        // Unordered
+        m = uRe.exec(raw);
+        if (m) {
+          const indent = m[1].length;
+          const content = m[3];
+          flushTo(indent);
+          if (!stack.length || stack[stack.length-1].type!=='ul' || stack[stack.length-1].indent<indent) {
+            openList('ul', indent);
+          }
+          out.push(`<li>${content}</li>`);
+          continue;
+        }
+
+        // Ordered
+        m = oRe.exec(raw);
+        if (m) {
+          const indent = m[1].length;
+          const content = m[4];
+          flushTo(indent);
+          if (!stack.length || stack[stack.length-1].type!=='ol' || stack[stack.length-1].indent<indent) {
+            openList('ol', indent);
+          }
+          out.push(`<li>${content}</li>`);
+          continue;
+        }
+
+        // Not a list line
+        flushTo(0);
+        out.push(raw);
+      }
+      flushTo(0);
+      return out.join('\n');
+    };
+    text = listify(text);
+
+    // 7) Inline: images ![alt](url|WxH)
+    text = text.replace(/!\[([^\]]*)\]\(([^)\s]+?)(?:\|(\d+)(?:x(\d+))?)?\)/g, (m, alt, url, w, h) => {
+      const u = url.replace(/\s/g, '%20');
+      const size = (w ? ` width="${w}"` : '') + (h ? ` height="${h}"` : '');
+      return `<img src="${u}" alt="${alt.replace(/"/g,'&quot;')}"${size} style="max-width:100%;height:auto;">`;
+    });
+
+    // 8) Inline links [text](url)
+    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, t, u) => {
+      const url = u.trim().replace(/\s/g, '%20').replace(/^<|>$/g,'');
+      return `<a href="${url}" target="_blank" rel="noopener">${t}</a>`;
+    });
+
+    // 9) Wikilinks [[Note]] or [[Note|Alias]]
+    text = text.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (m, note, alias) => {
+      const label = (alias || note).trim();
+      let href = '#';
+      if (typeof window.resolveNoteLink === 'function') {
+        try { href = window.resolveNoteLink(note.trim()); } catch {}
+      }
+      return `<a href="${href}">${label}</a>`;
+    });
+
+    // 10) Bold/italic/strike/highlight (order matters)
+    // Bold+italic (***text***)
+    text = text.replace(/(\*\*\*|___)([\s\S]+?)\1/g, '<strong><em>$2</em></strong>');
+    // Bold (** or __)
+    text = text.replace(/(\*\*|__)([\s\S]+?)\1/g, '<strong>$2</strong>');
+    // Italic (* or _)
+    text = text.replace(/(\*|_)([^*_][\s\S]*?)\1/g, '<em>$2</em>');
+    // Strikethrough
+    text = text.replace(/~~([\s\S]+?)~~/g, '<del>$1</del>');
+    // Highlight == ==
+    text = text.replace(/==([\s\S]+?)==/g, '<mark>$1</mark>');
+
+    // 11) Inline code `code` and double-backtick variant
+    text = text
+      .replace(/``([^`]+)``/g, (m, c) => `<code>${c}</code>`)
+      .replace(/`([^`]+)`/g, (m, c) => `<code>${c}</code>`);
+
+    // 12) Line breaks within paragraphs:
+    //    - Two trailing spaces + newline => <br>
+    text = text.replace(/  \n/g, '<br>\n');
+
+    // 13) Paragraph wrapping:
+    // Split by blank lines; keep blocks that are already block elements as-is.
+    const blocks = text.split(/\n{2,}/).map(chunk => {
+      const trimmed = chunk.trim();
+      if (!trimmed) return '';
+      // If chunk starts with block element, don't wrap
+      if (/^<(h\d|ul|ol|li|hr|blockquote|pre|img|code)/i.test(trimmed)) return trimmed;
+      // If looks like list residue, keep
+      if (/^\s*<\/?(ul|ol|li)/i.test(trimmed)) return trimmed;
+      return `<p>${trimmed}</p>`;
+    }).join('\n');
+
+    // 14) Restore fenced code blocks
+    const restored = blocks.replace(/\u0000CODEBLOCK_(\d+)\u0000/g, (m, idx) => {
+      const entry = codeStore[Number(idx)] || { lang:'', code:'' };
+      const safe = entry.code.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      const cls = entry.lang ? ` class="language-${entry.lang}"` : '';
+      return `<pre><code${cls}>${safe}</code></pre>`;
+    });
+
+    return restored;
   }
 }
 
