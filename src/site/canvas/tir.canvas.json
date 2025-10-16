@@ -1,94 +1,700 @@
 {
-	"nodes":[
-		{"id":"e8d9ba20a0fe19b9","type":"file","file":"2. Locations/Terra/Terra.md","x":-1845,"y":-20,"width":405,"height":440},
-		{"id":"c77a2d31f94996df","type":"file","file":"2. Locations/Astra/Astra.md","x":-2200,"y":-20,"width":320,"height":338},
-		{"id":"41007c06b417dff9","type":"file","file":"2. Locations/Avalon/Avalon (Between Astra & Terra).md","x":-1824,"y":723,"width":464,"height":277,"color":"#00f048"},
-		{"id":"89ef0cd4b70bded5","type":"text","text":"# _**Luna/The Moon:**_ \nOur world's moon isn't that different looking to our world. It's also inhabited and has its own large population of diverse people and races. The Lunan people are known to resemble the beasts of Tír given a humanoid form. Travel from Tír to Luna is possible, but Uncommon due to its expensive nature.\n\nLuna deities more Fey\n\nSpecies: Furries","x":-1400,"y":-20,"width":404,"height":440},
-		{"id":"90c10f7732f72a36","type":"text","text":"# _**Adventurers' Guild:**_ **Leaders:** Edward & Abigale Teach (Green)\nThe Adventurers' Guild is the largest group in [[Avalon (Between Astra & Terra)|Avalon]] by population. The other factions mostly scout their members from particularly promising or accomplished members of this guild. It is also the only faction with an ==**established presence outside the Avalon Archipelago**.== They make their goal maintaining peace in remote parts of the world, where neither city guards nor most armies want to go. Preserving the life of the people and adventurers is their priority, but it's not always an easy endeavour. [[Edward]] & [[Abigail Teach.png|Abigale]] are the ever traveling duo at the helm of the Adventurers' Guild. They're the most popular leaders among Avalon's top brass due to their frequent travels and public appearances. They've been on so many adventures throughout the years that telling whether a story about their exploits is truth or myth has become almost impossible to tell.","x":-3030,"y":1345,"width":596,"height":440},
-		{"id":"3dbb63fa927201de","type":"text","text":"# _**Forge:**_ **Leader:** Xavier Crepus (Light Blue)\nThe Forge is [[Avalon (Between Astra & Terra)|Avalon]]'s technological research division. They focus on Magitech and improving the lives of the people with their research. The Forge is also responsible for maintenance of Avalon's Relic Vaults. Their main base is located at the central castle in the city of **==Camelot==**. Often referenced as the Grandmaster of Avalon, Xavier is the de-facto leader among the Headmasters. He's known for his expertise with forging Relic grade magic weapons and ability to summon creatures to aid in battle.","x":-680,"y":1345,"width":494,"height":440},
-		{"id":"4cfe74facf45965d","type":"text","text":"# Tír Miotasach","x":-945,"y":-560,"width":250,"height":60},
-		{"id":"d7ed7ee000e615cf","type":"text","text":"# Major Regions, Continents, Empires","x":-1785,"y":-260,"width":285,"height":100},
-		{"id":"f96ce6494bed0cc8","type":"file","file":"3. NPCs/Avalon/Jay.md","x":-1764,"y":1880,"width":326,"height":502},
-		{"id":"b84fd3f8779ee7d3","type":"file","file":"2. Locations/Astra/The Coastal Coalition.md","x":-3959,"y":700,"width":424,"height":320},
-		{"id":"359ab5c6976cc1e0","type":"text","text":"# Nations, States and Minor Regions.","x":-3889,"y":90,"width":285,"height":100},
-		{"id":"4287077f9fe87620","type":"file","file":"2. Locations/Astra/Eurea.md","x":-3444,"y":690,"width":414,"height":230},
-		{"id":"df4f74132828027a","type":"file","file":"2. Locations/Astra/The Northern Lands/Kingdom of Midgard/Kingdom of Midgard.md","x":-4994,"y":700,"width":459,"height":570},
-		{"id":"7368b7b1eeb59b1b","type":"file","file":"2. Locations/Astra/Lemuria.md","x":-4434,"y":700,"width":364,"height":460},
-		{"id":"2149e2786fcd63d3","type":"file","file":"2. Locations/Astra/The Northern Lands/Kingdom of Midgard/Asphodel.md","x":-4964,"y":1315,"width":184,"height":50},
-		{"id":"95db3383b4edf21d","type":"text","text":"# Relics\n\nNames carry power. The more well known a name the more power it has. Relics are powerful items often associated with figures of legend and derive their power from the respect their names demand. Weapons like Excalibur, Durendal and Ascalon are among the most well known Relics out there. The few capable of wielding them often have their names and stories forever engraved in the annals of history. Certain Relics have lost their names. They often hold power capable of toppling nations on their own and are sealed away in the most dangerous parts of the world. These Forgotten Relics are a priority for many major factions as getting hold of even one can completely shift the balance of power in this world.","x":-328,"y":-22,"width":647,"height":340},
-		{"id":"106f551ec1fee53e","type":"file","file":"3. NPCs/Thespians/Thespians.md","x":1044,"y":318,"width":469,"height":229,"color":"1"},
-		{"id":"18625fa28a09f4c1","type":"file","file":"3. NPCs/Thespians/Vavel, the Black Dragon.md","x":1517,"y":666,"width":403,"height":494,"color":"1"},
-		{"id":"220fbbb031a10e38","type":"file","file":"3. NPCs/Thespians/Albert, the Jester.md","x":640,"y":666,"width":404,"height":494,"color":"1"},
-		{"id":"24b15c2ec0b2f7ff","type":"file","file":"3. NPCs/Thespians/Cartha Coccineus, the Scarlet Priestess.md","x":1121,"y":663,"width":359,"height":497,"color":"1"},
-		{"id":"9a572416479fdce6","type":"file","file":"2. Locations/Astra/The Northern Lands/Northern Lands.md","x":-5208,"y":-479,"width":888,"height":756},
-		{"id":"83f3693ca337035a","type":"file","file":"Images/Northern Lands 3.png","x":-6200,"y":-421,"width":936,"height":698},
-		{"id":"d65981e767fedc11","type":"text","text":"# ASIA TM COUNTRY IDK\n EAST\n \n Where [[Hikoboshi Koi]] comes from\n\n Elvian deities","x":-945,"y":-20,"width":342,"height":263},
-		{"id":"a62d86f152e0bb29","type":"file","file":"3. NPCs/Limurea/Lora Lemer.md","x":-4461,"y":1228,"width":418,"height":515},
-		{"id":"48f95ca37a2bd795","type":"text","text":"# Arcadia: Leader: Atlas, The Barron (Purple)\n\nDo the dirty work, making sure that Thespians don't destroy everything.\n\n","x":-3852,"y":1365,"width":417,"height":400},
-		{"id":"ff73da041b890a2d","type":"file","file":"Images/Eurea.png","x":-3437,"y":961,"width":400,"height":267},
-		{"id":"0dc37f4fc8c28596","type":"text","text":"# Maya\n\nMages Guild.\nPaladin / Champion\n\n![[Maya 1.png]]","x":-1400,"y":1880,"width":299,"height":527},
-		{"id":"8db0d1590050d12f","type":"file","file":"Images/Avalon_v2 1.jpg","x":-1213,"y":510,"width":780,"height":585},
-		{"id":"32e5205ad6adf855","type":"file","file":"3. NPCs/Avalon/Fey.md","x":-2360,"y":1880,"width":140,"height":99},
-		{"id":"19e7def0138c0054","type":"file","file":"3. NPCs/Avalon/Yao.md","x":-2203,"y":1880,"width":400,"height":400},
-		{"id":"f507ce7a637b9654","type":"file","file":"3. NPCs/Avalon/Atlas, The Barron.md","x":-3843,"y":1880,"width":400,"height":400},
-		{"id":"b7b771f7cf876577","type":"file","file":"3. NPCs/Avalon/Ophi.md","x":-3643,"y":2405,"width":400,"height":400},
-		{"id":"7039e70e958e8da2","type":"file","file":"3. NPCs/Avalon/Phoebe.md","x":-4128,"y":2405,"width":400,"height":400},
-		{"id":"07fb2fe16cdd7c3e","type":"file","file":"3. NPCs/Avalon/Xavier Crepus.md","x":-60,"y":1880,"width":488,"height":760},
-		{"id":"9c72c69fef3bc20b","type":"file","file":"3. NPCs/Avalon/Salum.md","x":-620,"y":1880,"width":480,"height":540},
-		{"id":"bdb27e3c074e1598","type":"file","file":"3. NPCs/Avalon/Mythra Crepus.md","x":-1080,"y":1880,"width":420,"height":540},
-		{"id":"da4f4b33052b6eb4","type":"text","text":"# Abigale Teach\n\n\n![[Abigail Teach.png]]","x":-2932,"y":1818,"width":400,"height":525},
-		{"id":"9159d4d09c578f96","type":"text","text":"# _**Intelligence:**_ **Leader:** Aleister Crowley (Dark Blue)\nThe most secretive faction in [[Avalon (Between Astra & Terra)|Avalon]]. They make their base on the island of **==Clarent==**. Their members are known as Avalon's most versatile members. The all-knowing mage acting in the shadows. People say Aleister knows of every single thing going down on the island at any time. He also supposedly has the ability to foresee the exact outcome of future events. ","x":-2340,"y":1345,"width":480,"height":305},
-		{"id":"1e6f2b426a30efcc","type":"text","text":"# _**Scribes:**_ **Leader:** Mythra Crepus (Yellow)\nThe Scribes are [[Avalon (Between Astra & Terra)|Avalon]]'s magical research faction. Within the **==Academy Town==**. They specialise in development of more efficient magical tools and training of new mages. Among their responsibilities is also teaching, maintaining and developing the magic academy on the main island of Avalon. The Academy's Headmaster is known as a genius prodigal Sorceress, but also a no-nonsense leader. She's known to be rather cold hearted and ruthless.","x":-1300,"y":1345,"width":480,"height":285},
-		{"id":"fc86e30320a6cbb3","type":"text","text":"# _**Enforcers:**_ **Leader:** Stheno (RED)\nThe faction who made their headquarters in the ruined forts around the island of **==Galatin==**. Their main focus is providing powerful fighters for the sake of defending the [[Avalon (Between Astra & Terra)|Avalon]] Archipelago. Their high ranking members are among the strongest martial combatants in the organisation. Stheno is the strongest Fighter in Avalon. Few know her real face as she prefers to keep herself hidden under a set of enchanted plate armour. The few tales of those who worked with her describe her as an kind and brave person as well as a powerful and charismatic leader.","x":-1793,"y":1345,"width":403,"height":436},
-		{"id":"bcc618c696ac5739","type":"file","file":"3. NPCs/Thespians/Quovadis.md","x":1101,"y":1200,"width":400,"height":495}
-	],
-	"edges":[
-		{"id":"07aad80d9e682192","fromNode":"4cfe74facf45965d","fromSide":"bottom","toNode":"d7ed7ee000e615cf","toSide":"top"},
-		{"id":"0d18f25fddbabcf3","fromNode":"d7ed7ee000e615cf","fromSide":"bottom","toNode":"c77a2d31f94996df","toSide":"top"},
-		{"id":"33c5e8e7f97df1d9","fromNode":"d7ed7ee000e615cf","fromSide":"bottom","toNode":"e8d9ba20a0fe19b9","toSide":"top"},
-		{"id":"0f93a84816bd9aaa","fromNode":"d7ed7ee000e615cf","fromSide":"bottom","toNode":"89ef0cd4b70bded5","toSide":"top"},
-		{"id":"37d6acbdef9cbe38","fromNode":"359ab5c6976cc1e0","fromSide":"bottom","toNode":"b84fd3f8779ee7d3","toSide":"top"},
-		{"id":"63d37133b594f8d1","fromNode":"c77a2d31f94996df","fromSide":"bottom","toNode":"b84fd3f8779ee7d3","toSide":"top"},
-		{"id":"cd501e2306517c60","fromNode":"c77a2d31f94996df","fromSide":"bottom","toNode":"4287077f9fe87620","toSide":"top"},
-		{"id":"a66282f7d336aa40","fromNode":"359ab5c6976cc1e0","fromSide":"bottom","toNode":"4287077f9fe87620","toSide":"top"},
-		{"id":"411763a60a6b1354","fromNode":"c77a2d31f94996df","fromSide":"bottom","toNode":"41007c06b417dff9","toSide":"top"},
-		{"id":"dd0284d45836aac6","fromNode":"e8d9ba20a0fe19b9","fromSide":"bottom","toNode":"41007c06b417dff9","toSide":"top"},
-		{"id":"b19f1c779d4c0858","fromNode":"41007c06b417dff9","fromSide":"bottom","toNode":"90c10f7732f72a36","toSide":"top"},
-		{"id":"44aa90b147626f59","fromNode":"41007c06b417dff9","fromSide":"bottom","toNode":"9159d4d09c578f96","toSide":"top"},
-		{"id":"708ffe00975276b1","fromNode":"41007c06b417dff9","fromSide":"bottom","toNode":"1e6f2b426a30efcc","toSide":"top"},
-		{"id":"6c9535c8827968c6","fromNode":"41007c06b417dff9","fromSide":"bottom","toNode":"3dbb63fa927201de","toSide":"top"},
-		{"id":"85bcec3780aeabe4","fromNode":"4cfe74facf45965d","fromSide":"bottom","toNode":"106f551ec1fee53e","toSide":"top"},
-		{"id":"38cce8a14791ca15","fromNode":"4cfe74facf45965d","fromSide":"bottom","toNode":"95db3383b4edf21d","toSide":"top"},
-		{"id":"e6596cf91b5f2a84","fromNode":"3dbb63fa927201de","fromSide":"bottom","toNode":"9c72c69fef3bc20b","toSide":"top"},
-		{"id":"839cf7cd4b178f3d","fromNode":"359ab5c6976cc1e0","fromSide":"bottom","toNode":"7368b7b1eeb59b1b","toSide":"top"},
-		{"id":"d81eb61b85c085c5","fromNode":"c77a2d31f94996df","fromSide":"bottom","toNode":"7368b7b1eeb59b1b","toSide":"top"},
-		{"id":"c0293efb8f56e7b0","fromNode":"359ab5c6976cc1e0","fromSide":"bottom","toNode":"df4f74132828027a","toSide":"top"},
-		{"id":"96d5a9b10344918c","fromNode":"c77a2d31f94996df","fromSide":"bottom","toNode":"df4f74132828027a","toSide":"top"},
-		{"id":"94e60ae6a4163c9c","fromNode":"fc86e30320a6cbb3","fromSide":"bottom","toNode":"f96ce6494bed0cc8","toSide":"top"},
-		{"id":"b4b9d90da6e56650","fromNode":"9a572416479fdce6","fromSide":"bottom","toNode":"df4f74132828027a","toSide":"top"},
-		{"id":"5204d5969daf4773","fromNode":"359ab5c6976cc1e0","fromSide":"left","toNode":"9a572416479fdce6","toSide":"right"},
-		{"id":"24bccb3024a091d9","fromNode":"df4f74132828027a","fromSide":"bottom","toNode":"2149e2786fcd63d3","toSide":"top"},
-		{"id":"dd1a85961eb4a1a4","fromNode":"7368b7b1eeb59b1b","fromSide":"bottom","toNode":"a62d86f152e0bb29","toSide":"top"},
-		{"id":"4b68a8eebf79f37f","fromNode":"3dbb63fa927201de","fromSide":"bottom","toNode":"07fb2fe16cdd7c3e","toSide":"top"},
-		{"id":"4a49fa8eb728dbf0","fromNode":"9159d4d09c578f96","fromSide":"bottom","toNode":"32e5205ad6adf855","toSide":"top"},
-		{"id":"bd6b9e38720d9bd4","fromNode":"106f551ec1fee53e","fromSide":"bottom","toNode":"220fbbb031a10e38","toSide":"top"},
-		{"id":"5d6454861dd86f01","fromNode":"106f551ec1fee53e","fromSide":"bottom","toNode":"24b15c2ec0b2f7ff","toSide":"top"},
-		{"id":"93349403b7612a13","fromNode":"106f551ec1fee53e","fromSide":"bottom","toNode":"18625fa28a09f4c1","toSide":"top"},
-		{"id":"d37babccd6504116","fromNode":"9159d4d09c578f96","fromSide":"bottom","toNode":"19e7def0138c0054","toSide":"top"},
-		{"id":"e559bf5f568a86e0","fromNode":"24b15c2ec0b2f7ff","fromSide":"bottom","toNode":"bcc618c696ac5739","toSide":"top"},
-		{"id":"d1c808503e3c9a2d","fromNode":"41007c06b417dff9","fromSide":"left","toNode":"48f95ca37a2bd795","toSide":"top"},
-		{"id":"20a5636f509f6330","fromNode":"48f95ca37a2bd795","fromSide":"bottom","toNode":"f507ce7a637b9654","toSide":"top"},
-		{"id":"8ff91ba1add35e93","fromNode":"48f95ca37a2bd795","fromSide":"bottom","toNode":"7039e70e958e8da2","toSide":"top"},
-		{"id":"faff6a50f8545cb0","fromNode":"48f95ca37a2bd795","fromSide":"bottom","toNode":"b7b771f7cf876577","toSide":"top"},
-		{"id":"426d5076afe4f754","fromNode":"1e6f2b426a30efcc","fromSide":"bottom","toNode":"0dc37f4fc8c28596","toSide":"top"},
-		{"id":"d4b6d7d931516dd6","fromNode":"d7ed7ee000e615cf","fromSide":"bottom","toNode":"d65981e767fedc11","toSide":"top"},
-		{"id":"0b188ec6c12c0e3e","fromNode":"90c10f7732f72a36","fromSide":"bottom","toNode":"da4f4b33052b6eb4","toSide":"top"},
-		{"id":"62067118ee3363e8","fromNode":"41007c06b417dff9","fromSide":"bottom","toNode":"fc86e30320a6cbb3","toSide":"top"},
-		{"id":"5513c22e2d173b15","fromNode":"4287077f9fe87620","fromSide":"bottom","toNode":"ff73da041b890a2d","toSide":"top"},
-		{"id":"7934981615af9905","fromNode":"bdb27e3c074e1598","fromSide":"top","toNode":"1e6f2b426a30efcc","toSide":"bottom"}
-	],
-	"metadata":{
-		"version":"1.0-1.0",
-		"frontmatter":{}
-	}
+  "nodes": [
+    {
+      "id": "e8d9ba20a0fe19b9",
+      "type": "file",
+      "file": "2. Locations/Terra/Terra.md",
+      "x": -1845,
+      "y": -20,
+      "width": 405,
+      "height": 440
+    },
+    {
+      "id": "c77a2d31f94996df",
+      "type": "file",
+      "file": "2. Locations/Astra/Astra.md",
+      "x": -2360,
+      "y": -20,
+      "width": 480,
+      "height": 340
+    },
+    {
+      "id": "41007c06b417dff9",
+      "type": "file",
+      "file": "2. Locations/Avalon/Avalon (Between Astra and Terra).md",
+      "x": -1824,
+      "y": 723,
+      "width": 464,
+      "height": 277,
+      "color": "#00f048"
+    },
+    {
+      "id": "4cfe74facf45965d",
+      "type": "text",
+      "text": "# Tír Miotasach",
+      "x": -945,
+      "y": -560,
+      "width": 250,
+      "height": 60
+    },
+    {
+      "id": "d7ed7ee000e615cf",
+      "type": "text",
+      "text": "# Major Regions, Continents, Empires",
+      "x": -1785,
+      "y": -260,
+      "width": 285,
+      "height": 100
+    },
+    {
+      "id": "f96ce6494bed0cc8",
+      "type": "file",
+      "file": "3. NPCs/Avalon/Jay.md",
+      "x": -1764,
+      "y": 1880,
+      "width": 326,
+      "height": 502
+    },
+    {
+      "id": "b84fd3f8779ee7d3",
+      "type": "file",
+      "file": "2. Locations/Astra/The Coastal Coalition.md",
+      "x": -3959,
+      "y": 700,
+      "width": 424,
+      "height": 320
+    },
+    {
+      "id": "359ab5c6976cc1e0",
+      "type": "text",
+      "text": "# Nations, States and Minor Regions.",
+      "x": -3889,
+      "y": 90,
+      "width": 285,
+      "height": 100
+    },
+    {
+      "id": "4287077f9fe87620",
+      "type": "file",
+      "file": "2. Locations/Astra/Eurea.md",
+      "x": -3444,
+      "y": 690,
+      "width": 414,
+      "height": 230
+    },
+    {
+      "id": "df4f74132828027a",
+      "type": "file",
+      "file": "2. Locations/Astra/The Northern Lands/Kingdom of Midgard/Kingdom of Midgard.md",
+      "x": -4994,
+      "y": 700,
+      "width": 459,
+      "height": 570
+    },
+    {
+      "id": "7368b7b1eeb59b1b",
+      "type": "file",
+      "file": "2. Locations/Astra/Lemuria.md",
+      "x": -4434,
+      "y": 700,
+      "width": 364,
+      "height": 460
+    },
+    {
+      "id": "2149e2786fcd63d3",
+      "type": "file",
+      "file": "2. Locations/Astra/The Northern Lands/Kingdom of Midgard/Asphodel.md",
+      "x": -4964,
+      "y": 1315,
+      "width": 184,
+      "height": 50
+    },
+    {
+      "id": "106f551ec1fee53e",
+      "type": "file",
+      "file": "3. NPCs/Thespians/Thespians.md",
+      "x": 1044,
+      "y": 318,
+      "width": 469,
+      "height": 229,
+      "color": "1"
+    },
+    {
+      "id": "18625fa28a09f4c1",
+      "type": "file",
+      "file": "3. NPCs/Thespians/Vavel, the Black Dragon.md",
+      "x": 1517,
+      "y": 666,
+      "width": 403,
+      "height": 494,
+      "color": "1"
+    },
+    {
+      "id": "220fbbb031a10e38",
+      "type": "file",
+      "file": "3. NPCs/Thespians/Albert, the Jester.md",
+      "x": 640,
+      "y": 666,
+      "width": 404,
+      "height": 494,
+      "color": "1"
+    },
+    {
+      "id": "24b15c2ec0b2f7ff",
+      "type": "file",
+      "file": "3. NPCs/Thespians/Cartha Coccineus, the Scarlet Priestess.md",
+      "x": 1121,
+      "y": 663,
+      "width": 359,
+      "height": 497,
+      "color": "1"
+    },
+    {
+      "id": "9a572416479fdce6",
+      "type": "file",
+      "file": "2. Locations/Astra/The Northern Lands/Northern Lands.md",
+      "x": -5208,
+      "y": -479,
+      "width": 888,
+      "height": 756
+    },
+    {
+      "id": "83f3693ca337035a",
+      "type": "file",
+      "file": "Images/Northern Lands 3.png",
+      "x": -6200,
+      "y": -421,
+      "width": 936,
+      "height": 698
+    },
+    {
+      "id": "a62d86f152e0bb29",
+      "type": "file",
+      "file": "3. NPCs/Limurea/Lora Lemer.md",
+      "x": -4461,
+      "y": 1228,
+      "width": 418,
+      "height": 515
+    },
+    {
+      "id": "ff73da041b890a2d",
+      "type": "file",
+      "file": "Images/Eurea.png",
+      "x": -3437,
+      "y": 961,
+      "width": 400,
+      "height": 267
+    },
+    {
+      "id": "8db0d1590050d12f",
+      "type": "file",
+      "file": "Images/Avalon_v2 1.jpg",
+      "x": -1213,
+      "y": 510,
+      "width": 780,
+      "height": 585
+    },
+    {
+      "id": "32e5205ad6adf855",
+      "type": "file",
+      "file": "3. NPCs/Avalon/Fey.md",
+      "x": -2360,
+      "y": 1880,
+      "width": 140,
+      "height": 99
+    },
+    {
+      "id": "19e7def0138c0054",
+      "type": "file",
+      "file": "3. NPCs/Avalon/Yao.md",
+      "x": -2203,
+      "y": 1880,
+      "width": 400,
+      "height": 400
+    },
+    {
+      "id": "f507ce7a637b9654",
+      "type": "file",
+      "file": "3. NPCs/Avalon/Atlas, The Barron.md",
+      "x": -3843,
+      "y": 1880,
+      "width": 400,
+      "height": 400
+    },
+    {
+      "id": "b7b771f7cf876577",
+      "type": "file",
+      "file": "3. NPCs/Avalon/Ophi.md",
+      "x": -3643,
+      "y": 2405,
+      "width": 400,
+      "height": 400
+    },
+    {
+      "id": "7039e70e958e8da2",
+      "type": "file",
+      "file": "3. NPCs/Avalon/Phoebe.md",
+      "x": -4128,
+      "y": 2405,
+      "width": 400,
+      "height": 400
+    },
+    {
+      "id": "07fb2fe16cdd7c3e",
+      "type": "file",
+      "file": "3. NPCs/Avalon/Xavier Crepus.md",
+      "x": -60,
+      "y": 1880,
+      "width": 488,
+      "height": 760
+    },
+    {
+      "id": "9c72c69fef3bc20b",
+      "type": "file",
+      "file": "3. NPCs/Avalon/Salum.md",
+      "x": -620,
+      "y": 1880,
+      "width": 480,
+      "height": 540
+    },
+    {
+      "id": "bdb27e3c074e1598",
+      "type": "file",
+      "file": "3. NPCs/Avalon/Mythra Crepus.md",
+      "x": -1080,
+      "y": 1880,
+      "width": 420,
+      "height": 760
+    },
+    {
+      "id": "bcc618c696ac5739",
+      "type": "file",
+      "file": "3. NPCs/Thespians/Quovadis.md",
+      "x": 1101,
+      "y": 1200,
+      "width": 400,
+      "height": 495
+    },
+    {
+      "id": "b812ab50817c0e69",
+      "type": "file",
+      "file": "2. Locations/Luna;The Moon/Luna The Moon.md",
+      "x": -1400,
+      "y": -20,
+      "width": 404,
+      "height": 440
+    },
+    {
+      "id": "e8db9a14721f721d",
+      "type": "file",
+      "file": "2. Locations/ASIA TM COUNTRY IDK.md",
+      "x": -945,
+      "y": -22,
+      "width": 342,
+      "height": 263
+    },
+    {
+      "id": "49416c1fb048a03d",
+      "type": "file",
+      "file": "Relics.md",
+      "x": -320,
+      "y": -20,
+      "width": 647,
+      "height": 340
+    },
+    {
+      "id": "9655abf8b373891f",
+      "type": "file",
+      "file": "3. NPCs/Avalon/Maya.md",
+      "x": -1400,
+      "y": 1880,
+      "width": 299,
+      "height": 527
+    },
+    {
+      "id": "1f2381aa68988f98",
+      "type": "file",
+      "file": "2. Locations/Avalon/Adventurers' Guild Leaders Edward & Abigale Teach (Green).md",
+      "x": -3020,
+      "y": 1340,
+      "width": 596,
+      "height": 440
+    },
+    {
+      "id": "9c2dda7f2ae3f3e2",
+      "type": "file",
+      "file": "2. Locations/Avalon/Intelligence Leader Aleister Crowley (Dark Blue).md",
+      "x": -2340,
+      "y": 1340,
+      "width": 480,
+      "height": 305
+    },
+    {
+      "id": "353a6235c63edc00",
+      "type": "file",
+      "file": "2. Locations/Avalon/Enforcers Leader Stheno (RED).md",
+      "x": -1800,
+      "y": 1340,
+      "width": 403,
+      "height": 436
+    },
+    {
+      "id": "fe48ae606061e4f6",
+      "type": "file",
+      "file": "2. Locations/Avalon/Scribes Leader Mythra Crepus (Yellow).md",
+      "x": -1300,
+      "y": 1340,
+      "width": 480,
+      "height": 320
+    },
+    {
+      "id": "c0c6bf6324baaf44",
+      "type": "file",
+      "file": "2. Locations/Avalon/Forge Leader Xavier Crepus (Light Blue).md",
+      "x": -680,
+      "y": 1340,
+      "width": 494,
+      "height": 440
+    },
+    {
+      "id": "4cb452ae8dfe8d6a",
+      "type": "file",
+      "file": "3. NPCs/Avalon/Abigale Teach.md",
+      "x": -2940,
+      "y": 1820,
+      "width": 400,
+      "height": 525
+    },
+    {
+      "id": "3225927f225974bb",
+      "type": "file",
+      "file": "2. Locations/Avalon/Arcadia Leader Atlas, The Barron (Purple).md",
+      "x": -3860,
+      "y": 1360,
+      "width": 417,
+      "height": 400
+    },
+    {
+      "id": "b75375266455372d",
+      "type": "file",
+      "file": "3. NPCs/Thespians/Adlibs.md",
+      "x": 642,
+      "y": 1220,
+      "width": 400,
+      "height": 400
+    }
+  ],
+  "edges": [
+    {
+      "id": "07aad80d9e682192",
+      "toFloating": false,
+      "fromNode": "4cfe74facf45965d",
+      "fromSide": "bottom",
+      "toNode": "d7ed7ee000e615cf",
+      "toSide": "top"
+    },
+    {
+      "id": "0d18f25fddbabcf3",
+      "fromNode": "d7ed7ee000e615cf",
+      "fromSide": "bottom",
+      "toNode": "c77a2d31f94996df",
+      "toSide": "top"
+    },
+    {
+      "id": "33c5e8e7f97df1d9",
+      "fromNode": "d7ed7ee000e615cf",
+      "fromSide": "bottom",
+      "toNode": "e8d9ba20a0fe19b9",
+      "toSide": "top"
+    },
+    {
+      "id": "0f93a84816bd9aaa",
+      "toFloating": false,
+      "fromNode": "d7ed7ee000e615cf",
+      "fromSide": "bottom",
+      "toNode": "b812ab50817c0e69",
+      "toSide": "top"
+    },
+    {
+      "id": "37d6acbdef9cbe38",
+      "fromNode": "359ab5c6976cc1e0",
+      "fromSide": "bottom",
+      "toNode": "b84fd3f8779ee7d3",
+      "toSide": "top"
+    },
+    {
+      "id": "cd501e2306517c60",
+      "fromNode": "c77a2d31f94996df",
+      "fromSide": "bottom",
+      "toNode": "4287077f9fe87620",
+      "toSide": "top"
+    },
+    {
+      "id": "a66282f7d336aa40",
+      "fromNode": "359ab5c6976cc1e0",
+      "fromSide": "bottom",
+      "toNode": "4287077f9fe87620",
+      "toSide": "top"
+    },
+    {
+      "id": "411763a60a6b1354",
+      "fromNode": "c77a2d31f94996df",
+      "fromSide": "bottom",
+      "toNode": "41007c06b417dff9",
+      "toSide": "top"
+    },
+    {
+      "id": "dd0284d45836aac6",
+      "toFloating": false,
+      "fromNode": "e8d9ba20a0fe19b9",
+      "fromSide": "bottom",
+      "toNode": "41007c06b417dff9",
+      "toSide": "top"
+    },
+    {
+      "id": "b19f1c779d4c0858",
+      "toFloating": false,
+      "fromNode": "41007c06b417dff9",
+      "fromSide": "bottom",
+      "toNode": "1f2381aa68988f98",
+      "toSide": "top"
+    },
+    {
+      "id": "708ffe00975276b1",
+      "fromNode": "41007c06b417dff9",
+      "fromSide": "bottom",
+      "toNode": "fe48ae606061e4f6",
+      "toSide": "top"
+    },
+    {
+      "id": "6c9535c8827968c6",
+      "fromNode": "41007c06b417dff9",
+      "fromSide": "bottom",
+      "toNode": "c0c6bf6324baaf44",
+      "toSide": "top"
+    },
+    {
+      "id": "38cce8a14791ca15",
+      "fromNode": "4cfe74facf45965d",
+      "fromSide": "bottom",
+      "toNode": "49416c1fb048a03d",
+      "toSide": "top"
+    },
+    {
+      "id": "e6596cf91b5f2a84",
+      "fromNode": "c0c6bf6324baaf44",
+      "fromSide": "bottom",
+      "toNode": "9c72c69fef3bc20b",
+      "toSide": "top"
+    },
+    {
+      "id": "839cf7cd4b178f3d",
+      "fromNode": "359ab5c6976cc1e0",
+      "fromSide": "bottom",
+      "toNode": "7368b7b1eeb59b1b",
+      "toSide": "top"
+    },
+    {
+      "id": "d81eb61b85c085c5",
+      "fromNode": "c77a2d31f94996df",
+      "fromSide": "bottom",
+      "toNode": "7368b7b1eeb59b1b",
+      "toSide": "top"
+    },
+    {
+      "id": "c0293efb8f56e7b0",
+      "fromNode": "359ab5c6976cc1e0",
+      "fromSide": "bottom",
+      "toNode": "df4f74132828027a",
+      "toSide": "top"
+    },
+    {
+      "id": "96d5a9b10344918c",
+      "fromNode": "c77a2d31f94996df",
+      "fromSide": "bottom",
+      "toNode": "df4f74132828027a",
+      "toSide": "top"
+    },
+    {
+      "id": "94e60ae6a4163c9c",
+      "fromNode": "353a6235c63edc00",
+      "fromSide": "bottom",
+      "toNode": "f96ce6494bed0cc8",
+      "toSide": "top"
+    },
+    {
+      "id": "b4b9d90da6e56650",
+      "fromNode": "9a572416479fdce6",
+      "fromSide": "bottom",
+      "toNode": "df4f74132828027a",
+      "toSide": "top"
+    },
+    {
+      "id": "5204d5969daf4773",
+      "fromNode": "359ab5c6976cc1e0",
+      "fromSide": "left",
+      "toNode": "9a572416479fdce6",
+      "toSide": "right"
+    },
+    {
+      "id": "24bccb3024a091d9",
+      "fromNode": "df4f74132828027a",
+      "fromSide": "bottom",
+      "toNode": "2149e2786fcd63d3",
+      "toSide": "top"
+    },
+    {
+      "id": "dd1a85961eb4a1a4",
+      "fromNode": "7368b7b1eeb59b1b",
+      "fromSide": "bottom",
+      "toNode": "a62d86f152e0bb29",
+      "toSide": "top"
+    },
+    {
+      "id": "4b68a8eebf79f37f",
+      "fromNode": "c0c6bf6324baaf44",
+      "fromSide": "bottom",
+      "toNode": "07fb2fe16cdd7c3e",
+      "toSide": "top"
+    },
+    {
+      "id": "4a49fa8eb728dbf0",
+      "fromNode": "9c2dda7f2ae3f3e2",
+      "fromSide": "bottom",
+      "toNode": "32e5205ad6adf855",
+      "toSide": "top"
+    },
+    {
+      "id": "bd6b9e38720d9bd4",
+      "fromNode": "106f551ec1fee53e",
+      "fromSide": "bottom",
+      "toNode": "220fbbb031a10e38",
+      "toSide": "top"
+    },
+    {
+      "id": "5d6454861dd86f01",
+      "fromNode": "106f551ec1fee53e",
+      "fromSide": "bottom",
+      "toNode": "24b15c2ec0b2f7ff",
+      "toSide": "top"
+    },
+    {
+      "id": "93349403b7612a13",
+      "fromNode": "106f551ec1fee53e",
+      "fromSide": "bottom",
+      "toNode": "18625fa28a09f4c1",
+      "toSide": "top"
+    },
+    {
+      "id": "d37babccd6504116",
+      "fromNode": "9c2dda7f2ae3f3e2",
+      "fromSide": "bottom",
+      "toNode": "19e7def0138c0054",
+      "toSide": "top"
+    },
+    {
+      "id": "e559bf5f568a86e0",
+      "fromNode": "24b15c2ec0b2f7ff",
+      "fromSide": "bottom",
+      "toNode": "bcc618c696ac5739",
+      "toSide": "top"
+    },
+    {
+      "id": "d1c808503e3c9a2d",
+      "fromFloating": false,
+      "fromNode": "41007c06b417dff9",
+      "fromSide": "left",
+      "toNode": "3225927f225974bb",
+      "toSide": "top"
+    },
+    {
+      "id": "20a5636f509f6330",
+      "fromNode": "3225927f225974bb",
+      "fromSide": "bottom",
+      "toNode": "f507ce7a637b9654",
+      "toSide": "top"
+    },
+    {
+      "id": "8ff91ba1add35e93",
+      "fromNode": "3225927f225974bb",
+      "fromSide": "bottom",
+      "toNode": "7039e70e958e8da2",
+      "toSide": "top"
+    },
+    {
+      "id": "faff6a50f8545cb0",
+      "toFloating": false,
+      "fromNode": "3225927f225974bb",
+      "fromSide": "bottom",
+      "toNode": "b7b771f7cf876577",
+      "toSide": "top"
+    },
+    {
+      "id": "426d5076afe4f754",
+      "fromNode": "fe48ae606061e4f6",
+      "fromSide": "bottom",
+      "toNode": "9655abf8b373891f",
+      "toSide": "top"
+    },
+    {
+      "id": "d4b6d7d931516dd6",
+      "fromNode": "d7ed7ee000e615cf",
+      "fromSide": "bottom",
+      "toNode": "e8db9a14721f721d",
+      "toSide": "top"
+    },
+    {
+      "id": "0b188ec6c12c0e3e",
+      "fromNode": "1f2381aa68988f98",
+      "fromSide": "bottom",
+      "toNode": "4cb452ae8dfe8d6a",
+      "toSide": "top"
+    },
+    {
+      "id": "62067118ee3363e8",
+      "fromFloating": false,
+      "fromNode": "41007c06b417dff9",
+      "fromSide": "bottom",
+      "toNode": "353a6235c63edc00",
+      "toSide": "top"
+    },
+    {
+      "id": "5513c22e2d173b15",
+      "fromNode": "4287077f9fe87620",
+      "fromSide": "bottom",
+      "toNode": "ff73da041b890a2d",
+      "toSide": "top"
+    },
+    {
+      "id": "1687a989b87ff6d8",
+      "styleAttributes": {},
+      "toFloating": false,
+      "fromNode": "bdb27e3c074e1598",
+      "fromSide": "top",
+      "toNode": "fe48ae606061e4f6",
+      "toSide": "bottom"
+    },
+    {
+      "id": "e52c672210705720",
+      "styleAttributes": {},
+      "toFloating": false,
+      "fromNode": "41007c06b417dff9",
+      "fromSide": "left",
+      "toNode": "9c2dda7f2ae3f3e2",
+      "toSide": "top"
+    },
+    {
+      "id": "2b282314643c9215",
+      "styleAttributes": {},
+      "toFloating": false,
+      "fromNode": "220fbbb031a10e38",
+      "fromSide": "bottom",
+      "toNode": "b75375266455372d",
+      "toSide": "top"
+    }
+  ],
+  "metadata": {
+    "version": "1.0-1.0",
+    "frontmatter": {}
+  }
 }
