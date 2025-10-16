@@ -404,3 +404,34 @@
     return { items, edges };
   }
 })();
+
+(function(){
+  // slug helper should match the one you already use
+  const slug = s => String(s||'')
+    .replace(/&/g,' and ')
+    .trim()
+    .replace(/\./g,' ')
+    .replace(/[^\p{L}\p{N}]+/gu,'-')
+    .replace(/-+/g,'-')
+    .replace(/^-|-$/g,'')
+    .toLowerCase();
+
+  // Try to resolve by manifest title, then fall back to /slug/
+  function resolveByTitle(title) {
+    try {
+      const t = slug(title);
+      if (window.__PageManifestIndex && window.__PageManifestIndex.byTitle) {
+        const hit = window.__PageManifestIndex.byTitle.get(t);
+        if (hit && hit.length) return (hit.find(e=>!!e.url) || hit[0]).url || ('/'+t+'/');
+      }
+    } catch {}
+    return '/'+slug(title)+'/';
+  }
+
+  // canvas will call this for [[Wiki]] and [[Wiki|Alias]]
+  window.resolveNoteLink = function(noteTitle){
+    const url = resolveByTitle(noteTitle);
+    // ensure trailing slash for your site structure
+    return url.endsWith('/') ? url : (url + '/');
+  };
+})();
