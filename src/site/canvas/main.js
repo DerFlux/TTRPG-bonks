@@ -505,6 +505,8 @@
     const toEnrich = items.filter(it => it._needsEnrich && it.link);
 
     const queue = toEnrich.slice();
+    theLoop: for (let i = 0; i < queue.length; i++) {}
+
     const MAX_CONCURRENCY = 4;
     let active = 0;
 
@@ -574,11 +576,46 @@
     return res.json();
   }
 
+  // ---- Positions persistence (safe) ----
+  async function tryLoadPositionsJson(url = "/canvas/tir.positions.json") {
+    try {
+      const r = await fetch(url, { credentials: "same-origin" });
+      if (!r.ok) return null;
+      const j = await r.json();
+      return j && j.positions ? j.positions : null;
+    } catch {
+      return null;
+    }
+  }
+
+  // takes Obsidian JSON canvas ({nodes, edges}) and a positions map, returns same shape
+  function applyPositionsToObsidianCanvas(canvasJson, posMap) {
+    if (!canvasJson || !Array.isArray(canvasJson.nodes) || !posMap) return canvasJson;
+    for (const n of canvasJson.nodes) {
+      if (n && n.id && posMap[n.id]) {
+        const p = posMap[n.id];
+        if (typeof p.x === "number") n.x = p.x;
+        if (typeof p.y === "number") n.y = p.y;
+      }
+    }
+    return canvasJson;
+  }
+
   // ---------- boot ----------
   (async () => {
     try {
       await loadManifest();
-      const jsonCanvas = await loadJsonCanvas("tir.canvas.json");
+
+      // 1) load source canvas (Obsidian format)
+      let jsonCanvas = await loadJsonCanvas("tir.canvas.json");
+
+      // 2) load saved positions and merge before adapting
+      const savedPos = await tryLoadPositionsJson(); // /canvas/tir.positions.json
+      if (savedPos) {
+        jsonCanvas = applyPositionsToObsidianCanvas(jsonCanvas, savedPos);
+      }
+
+      // 3) adapt to viewer data and render
       const data = adaptJsonCanvas(jsonCanvas);
       app.setData(data);
       resolveNotesViaManifest(app);
@@ -601,106 +638,121 @@
       URL.revokeObjectURL(url);
     });
 
-// Ensure we have a toolbar element (use existing, else create one in <body>)
-function ensureToolbar() {
-  let tb = document.querySelector('.toolbar');
-  if (!tb) {
-    tb = document.createElement('div');
-    tb.className = 'toolbar';
-    document.body.appendChild(tb);
-  }
-  return tb;
-}
+    // add the “Debugging” toggle control (default OFF)
+    Debug.initToggle();
 
-// Create or reuse a button by id
-function ensureButton(toolbar, id, label, title) {
-  let btn = document.getElementById(id);
-  if (!btn) {
-    btn = document.createElement('button');
-    btn.id = id;
-    btn.type = 'button';
-    btn.textContent = label;
-    if (title) btn.title = title;
-    toolbar.appendChild(btn);
-  }
-  return btn;
-}
+    // Enhance toolbar with Save-to-Repo button wired to safe positions save
+    wireToolbarEnhancements();
+  })();
 
-// --- Save to Repo via Pages Function ---
-async function saveCanvasToRepo() {
-  const btn = document.getElementById('btn-save-repo');
-  try {
-    if (btn) {
-      btn.classList.add('saving');
-      btn.disabled = true;
-      btn.textContent = 'Saving…';
+  // ===== Toolbar enhancements =====
+
+  // Ensure we have a toolbar element (use existing, else create one in <body>)
+  function ensureToolbar() {
+    let tb = document.querySelector('.toolbar');
+    if (!tb) {
+      tb = document.createElement('div');
+      tb.className = 'toolbar';
+      document.body.appendChild(tb);
     }
+    return tb;
+  }
 
-    const payload = {
-      // path to the canvas JSON inside your repo:
-      path: "src/site/canvas/tir.canvas.json",
-      data: window.CanvasAppInstance.getData(),
-      message: "chore(canvas): update positions from canvas UI"
-    };
-
-    const res = await fetch("/api/save-canvas", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      credentials: "same-origin",
-      body: JSON.stringify(payload)
-    });
-
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      throw new Error(`Save failed (${res.status}) ${txt}`);
+  // Create or reuse a button by id
+  function ensureButton(toolbar, id, label, title) {
+    let btn = document.getElementById(id);
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = id;
+      btn.type = 'button';
+      btn.textContent = label;
+      if (title) btn.title = title;
+      toolbar.appendChild(btn);
     }
+    return btn;
+  }
 
-    if (btn) {
-      btn.textContent = "Saved ✓";
-      setTimeout(() => {
+  // --- Save to Repo via Pages Function (save positions only) ---
+  async function saveCanvasToRepo() {
+    const btn = document.getElementById('btn-save-repo');
+    try {
+      if (btn) {
+        btn.classList.add('saving');
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+      }
+
+      // collect just the id -> x,y for persistence
+      const data = window.CanvasAppInstance.getData(); // viewer data { items, edges }
+      const positions = {};
+      for (const it of (data.items || [])) {
+        if (!it.id) continue;
+        positions[it.id] = { x: it.x, y: it.y };
+      }
+
+      const payload = {
+        // NOTE: we do NOT overwrite tir.canvas.json anymore
+        path: "src/site/canvas/tir.positions.json",
+        data: {
+          positions,
+          updatedAt: new Date().toISOString(),
+          version: 1
+        },
+        message: "chore(canvas): update node positions"
+      };
+
+      const res = await fetch("/api/save-canvas", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`Save failed (${res.status}) ${txt}`);
+      }
+
+      if (btn) {
+        btn.textContent = "Saved ✓";
+        setTimeout(() => {
+          btn.textContent = "Save to Repo";
+          btn.classList.remove('saving');
+          btn.disabled = false;
+        }, 1200);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Save failed. Open DevTools for details.");
+      if (btn) {
         btn.textContent = "Save to Repo";
         btn.classList.remove('saving');
         btn.disabled = false;
-      }, 1200);
-    }
-  } catch (err) {
-    console.error(err);
-    alert("Save failed. Open DevTools for details.");
-    if (btn) {
-      btn.textContent = "Save to Repo";
-      btn.classList.remove('saving');
-      btn.disabled = false;
+      }
     }
   }
-}
 
-// === Call this during boot (after the app is initialized) ===
-(function wireToolbarEnhancements() {
-  const toolbar = ensureToolbar();
+  function wireToolbarEnhancements() {
+    const toolbar = ensureToolbar();
 
-  // Reuse existing zoom label if you have it; otherwise create it.
-  let zoomLabel = document.getElementById('zoom-level');
-  if (!zoomLabel) {
-    const span = document.createElement('span');
-    span.id = 'zoom-level';
-    span.textContent = '100%';
-    span.style.marginLeft = '8px';
-    toolbar.appendChild(span);
+    // Reuse existing zoom label if you have it; otherwise create it.
+    let zoomLabel = document.getElementById('zoom-level');
+    if (!zoomLabel) {
+      const span = document.createElement('span');
+      span.id = 'zoom-level';
+      span.textContent = '100%';
+      span.style.marginLeft = '8px';
+      toolbar.appendChild(span);
+    }
+
+    // Add or reuse the Save-to-Repo button
+    const saveRepoBtn = ensureButton(toolbar, 'btn-save-repo', 'Save to Repo', 'Commit canvas positions to the repository');
+    saveRepoBtn.addEventListener('click', saveCanvasToRepo);
+
+    // Reattach Debug toggle to this toolbar if needed
+    if (typeof Debug !== 'undefined' && Debug.initToggle) {
+      Debug.initToggle();
+    }
   }
 
-  // Add or reuse the Save-to-Repo button
-  const saveRepoBtn = ensureButton(toolbar, 'btn-save-repo', 'Save to Repo', 'Commit canvas positions to the repository');
-  saveRepoBtn.addEventListener('click', saveCanvasToRepo);
-
-  // If your Debug toggle is created programmatically, just re-init it here.
-  // If you used earlier code with Debug.initToggle(), call it now so it attaches to this toolbar.
-  if (typeof Debug !== 'undefined' && Debug.initToggle) {
-    Debug.initToggle();
-  }
-})();
-
-
-    // add the “Debugging” toggle control (default OFF)
-    Debug.initToggle();
-  })();
 })();
