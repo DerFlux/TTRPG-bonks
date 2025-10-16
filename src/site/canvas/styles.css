@@ -3,32 +3,42 @@
 
 /* =============================================================================
    Canvas theme variable bridge
-   We try to read common site variables first, then fall back to the old canvas
-   palette so this works even if some tokens don’t exist in the base theme.
    ============================================================================= */
 :root {
-  /* Backgrounds */
-  --cv-bg:            var(--page-bg, var(--theme-bg, var(--color-bg, #0f1020)));
-  --cv-surface:       var(--surface, var(--card-bg, #17192b));
-  --cv-surface-2:     var(--surface-2, #1b1d36);
+  /* If your site exposes these, we use them. Otherwise we fall back to LIGHT defaults. */
+  --cv-bg:            var(--page-bg, var(--theme-bg, #f7efe3));     /* <- light default */
+  --cv-surface:       var(--surface, var(--card-bg, #ffffff));
+  --cv-surface-2:     var(--surface-2, #faf7f0);
 
-  /* Text */
-  --cv-text:          var(--body-fg, var(--theme-fg, #e7e9ff));
-  --cv-text-muted:    var(--muted-fg, #bcc3ff);
-  --cv-heading:       var(--heading-fg, #cfd6ff);
+  --cv-text:          var(--body-fg, var(--theme-fg, #3a3a3a));
+  --cv-text-muted:    var(--muted-fg, #6a6a6a);
+  --cv-heading:       var(--heading-fg, #2a2a2a);
 
-  /* Accent & borders */
-  --cv-accent:        var(--link-color, var(--theme-accent, #7aa2ff));
-  --cv-border:        var(--border-color, var(--card-border, #2a2d4a));
+  --cv-accent:        var(--link-color, var(--theme-accent, #b0413e));
+  --cv-border:        var(--border-color, #e5ddcf);
 
-  /* Shadows / specials */
-  --cv-shadow:        0 8px 24px rgba(0,0,0,0.25);
-  --cv-grid:          var(--grid-color, var(--cv-surface-2));
+  --cv-shadow:        0 8px 24px rgba(0,0,0,0.08);
+
+  /* Grid */
+  --cv-grid-gap:      40px;
+  /* ultra-soft line using the border color */
+  --cv-grid-line:     color-mix(in oklab, var(--cv-border), transparent 70%);
 }
 
-/* Allow easy theming per mode if your base theme sets data attributes */
-html[data-theme="light"] {
-  --cv-shadow: 0 6px 18px rgba(0,0,0,0.12);
+/* If your base theme flips to dark, these overrides will switch canvas too. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cv-bg:         var(--theme-bg, #0f1020);
+    --cv-surface:    var(--card-bg, #17192b);
+    --cv-surface-2:  #1b1d36;
+    --cv-text:       var(--theme-fg, #e7e9ff);
+    --cv-text-muted: #bcc3ff;
+    --cv-heading:    #cfd6ff;
+    --cv-accent:     var(--theme-accent, #7aa2ff);
+    --cv-border:     var(--border-color, #2a2d4a);
+    --cv-shadow:     0 8px 24px rgba(0,0,0,0.25);
+    --cv-grid-line:  color-mix(in oklab, var(--cv-border), transparent 50%);
+  }
 }
 
 /* =============================================================================
@@ -38,13 +48,11 @@ html[data-theme="light"] {
 html, body {
   height: 100%;
   margin: 0;
-  /* Let the site/theme declare the font stack. If none, fall back: */
   font-family: var(--font-body, inherit), system-ui, Segoe UI, Roboto, Arial, sans-serif;
   background: var(--cv-bg);
   color: var(--cv-text);
 }
 
-/* Links inherit site rules; ensure visible on cards/grid */
 a { color: var(--link-color, var(--cv-accent)); }
 a:hover { text-decoration: underline; }
 
@@ -54,15 +62,13 @@ a:hover { text-decoration: underline; }
 .toolbar {
   position: fixed; inset: 12px auto auto 12px;
   display: flex; gap: 8px; align-items: center;
-  background: color-mix(in oklab, var(--cv-bg), #000 30%);
+  background: color-mix(in oklab, var(--cv-bg), #000 3%); /* subtle glass on light */
   backdrop-filter: blur(6px);
   border: 1px solid var(--cv-border);
   border-radius: 12px;
   padding: 8px 10px; z-index: 10;
 }
-
 .toolbar .spacer { width: 16px; display: inline-block; }
-
 .toolbar button {
   background: var(--cv-surface);
   color: var(--cv-text);
@@ -81,10 +87,14 @@ a:hover { text-decoration: underline; }
 #canvas-container {
   position: absolute; inset: 0;
   overflow: hidden; cursor: grab;
-  background:
-    radial-gradient(circle at 30% 20%, color-mix(in oklab, #fff 3%, transparent), transparent 400px),
-    linear-gradient(90deg, var(--cv-grid) 1px, transparent 1px) 0 0/40px 40px,
-    linear-gradient(0deg,  var(--cv-grid) 1px, transparent 1px) 0 0/40px 40px;
+
+  /* Match site background, then paint a VERY soft grid on top */
+  background-color: var(--cv-bg);
+  background-image:
+    linear-gradient(90deg, var(--cv-grid-line) 1px, transparent 1px),
+    linear-gradient(0deg,  var(--cv-grid-line) 1px, transparent 1px);
+  background-size: var(--cv-grid-gap) var(--cv-grid-gap);
+  background-position: 0 0, 0 0;
 }
 #canvas-container.panning { cursor: grabbing; }
 
@@ -161,11 +171,11 @@ a:hover { text-decoration: underline; }
 
 .card .md-body code {
   padding: .1rem .25rem; border-radius: 4px;
-  background: color-mix(in oklab, var(--cv-text), transparent 86%);
+  background: color-mix(in oklab, var(--cv-text), transparent 92%);
 }
 .card .md-body pre {
   padding: .5rem .75rem; border-radius: .5rem; overflow: auto;
-  background: color-mix(in oklab, var(--cv-text), transparent 86%);
+  background: color-mix(in oklab, var(--cv-text), transparent 92%);
 }
 .card .md-body pre code { background: transparent; padding: 0; }
 
