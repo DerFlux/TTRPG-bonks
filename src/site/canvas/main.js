@@ -1,4 +1,5 @@
-// main.js — controller with manifest resolve, enrichment, debug (global), safe save (passworded), left-biased fit
+// main.js — controller with manifest resolve, enrichment, debug (global),
+// link rewriting to correct published URLs, safe save (passworded), left-biased fit.
 (function () {
   const $ = (q, r=document) => r.querySelector(q);
   const container = $('#canvas-container');
@@ -6,7 +7,9 @@
   const app = new CanvasApp(container, world);
   window.CanvasAppInstance = app;
 
-  // ---------- Debug (GLOBAL) ----------
+  /* ===========================
+     Debug (GLOBAL, opt-in only)
+     =========================== */
   const Debug = (() => {
     let on = false;
     try {
@@ -33,14 +36,24 @@
     set(on);
     return { isOn: () => on, set, initToggle };
   })();
-  // expose globally so other scripts can check
   window.Debug = Debug;
 
-  // ---------- Helpers ----------
+  /* ===========
+     Helpers
+     =========== */
   const isImg = p => /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(p||"");
   const encodeSegs = p => p.split('/').map(encodeURIComponent).join('/');
   const sanitize = p => { let s=String(p||'').replace(/[|]+$/g,'').replace(/\/{2,}/g,'/'); if(!s.startsWith('/')) s='/'+s; return s; };
   const slug = s => String(s||'').replace(/&/g,' and ').trim().replace(/\./g,' ').replace(/[^\p{L}\p{N}]+/gu,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').toLowerCase();
+  const stripExt = p => String(p||'').replace(/\.[a-z0-9]+$/i,'');
+  const lastSeg = p => { const a=String(p||'').split('/'); return a[a.length-1]||''; };
+  const twoSeg = p => {
+    const a = String(p||"").split("/").filter(Boolean);
+    return a.slice(-2).join("/");
+  };
+  const norm = p => slug(stripExt(p));
+
+  /* Extract/strip Obsidian image embeds from text nodes */
   const extractEmbeds = (txt) => {
     const out = []; const re=/!\[\[([^|\]]+)(?:\|[^]]*)?\]\]/g; let m;
     const s = String(txt||'');
@@ -49,6 +62,8 @@
   };
   const stripEmbeds = s => String(s||'').replace(/!\[\[[^\]]+\]\]/g,'').trim();
   const titleDesc = txt => { const lines=String(txt||'').split(/\r?\n/); const t=(lines[0]||'').replace(/^#+\s*/,'').trim()||'Text'; const d=lines.slice(1).join('\n').trim(); return {title:t, desc:d}; };
+
+  /* Build a fallback site URL from a vault path */
   const noteUrlFromVault = (vp) => {
     if (!vp || isImg(vp)) return null;
     const parts = vp.replace(/\.md$/i,'').split('/').map((seg,i)=>{
@@ -58,6 +73,8 @@
     }).filter(Boolean);
     return sanitize(parts.join('/') + '/');
   };
+
+  /* Image candidate helpers */
   const imageCandidatesFromVault = (vp) => {
     if (!vp) return [];
     const stripped = vp.replace(/^Images\//i, '');
@@ -86,7 +103,9 @@
     return out;
   };
 
-  // ---------- Manifest ----------
+  /* ===========
+     Manifest
+     =========== */
   let M = null;
   async function loadManifest() {
     try {
@@ -109,10 +128,10 @@
     };
     (Array.isArray(man)?man:Object.values(man||{})).forEach(push);
     const add=(k,e)=>{ if(!k) return; const key=String(k).trim(); if(!key) return; (byKey.get(key)||byKey.set(key,[]).get(key)).push(e); };
-    const norm=s=>String(s||'').replace(/^\.?\/*/,'').toLowerCase();
+    const normKey=s=>String(s||'').replace(/^\.?\/*/,'').toLowerCase();
     for (const e of entries) {
       const stem = e.filePathStem ? e.filePathStem.replace(/^\/*/,'') : '';
-      [e.url,e.filePathStem,e.inputPath,e.source,norm(stem),'/'+norm(stem),norm(e.inputPath),norm(e.source)].forEach(k=>add(k,e));
+      [e.url,e.filePathStem,e.inputPath,e.source,normKey(stem),'/'+normKey(stem),normKey(e.inputPath),normKey(e.source)].forEach(k=>add(k,e));
       if (e.title){ const ts = slug(e.title); if(ts) (byTitle.get(ts)||byTitle.set(ts,[]).get(ts)).push(e); }
       const segs=(stem||'').split('/').filter(Boolean); const last2=segs.slice(-2).join('/'); const last3=segs.slice(-3).join('/');
       [last2,last3, slug(segs.slice(-2).join('/')), slug(segs.slice(-3).join('/'))].forEach(k=>add(k,e));
@@ -155,7 +174,93 @@
     return null;
   }
 
-  // ---------- HTML enrichment ----------
+  /* ===========================
+     LINK REWRITING (DOM-level)
+     =========================== */
+
+  // Aliases to resolve plain text or ambiguous links.
+  const LINK_ALIAS = new Map([
+    ["Avalon", "Avalon (Between Astra & Terra)"],
+    ["Hikoboshi Koi", "Hikoboshi Koi"],
+    ["Abigale", "Abigale Teach"],
+    ["Cartha", "Cartha Coccineus, the Scarlet Priestess"],
+    ["Xavier Crepus", "Xavier Crepus"],
+    ["Amantha the fourth", "Amantha the Fourth"],
+    ["Argent", "Argent"],
+    ["Kingdom of Midgard", "Kingdom of Midgard"],
+    ["Leones", "Leones"],
+    ["The Coastal Coalition", "The Coastal Coalition"],
+  ]);
+
+  async function ensureManifestIndexForLinks() {
+    if (!M) await loadManifest();
+    return M;
+  }
+
+  function pickBest(arr) {
+    if (!arr || !arr.length) return null;
+    return arr.find(e => e.url) || arr[0];
+  }
+
+  async function resolveUrlFromHrefOrText(href, text) {
+    await ensureManifestIndexForLinks();
+    const byStem = M.byKey;
+    const byTitle = M.byTitle;
+
+    // absolute external -> keep
+    if (/^https?:\/\//i.test(href)) return href;
+
+    const hClean = decodeURIComponent(href || "").replace(/^\/+/, "").replace(/&amp;/gi, "and");
+    const stem1  = norm(hClean);
+    const stem2  = norm(lastSeg(hClean));
+    const stem3  = norm(twoSeg(hClean));
+
+    // try stems
+    let arr = byStem.get(stem1) || byStem.get('/'+stem1);
+    let hit = pickBest(arr) || pickBest(byStem.get(stem2)) || pickBest(byStem.get(stem3));
+    if (hit && hit.url) return hit.url;
+
+    // image href but text is the title
+    const looksImage = /\.[a-z0-9]{3,4}$/i.test(hClean);
+    if (looksImage && text) {
+      const tNorm = norm(text);
+      hit = pickBest(byTitle.get(tNorm));
+      if (hit && hit.url) return hit.url;
+    }
+
+    // try href as title directly
+    hit = pickBest(byTitle.get(stem1));
+    if (hit && hit.url) return hit.url;
+
+    // try alias via text or href
+    const aliasKey =
+      (text && LINK_ALIAS.has(text)) ?
+        text :
+        [...LINK_ALIAS.keys()].find(k => slug(k) === stem1);
+    if (aliasKey) {
+      const target = LINK_ALIAS.get(aliasKey);
+      hit = pickBest(byTitle.get(norm(target)));
+      if (hit && hit.url) return hit.url;
+    }
+
+    // fallback: leave original
+    return href;
+  }
+
+  async function rewriteLinksInDOM(root=document) {
+    const anchors = root.querySelectorAll('.card .md-body a[href]');
+    const jobs = Array.from(anchors).map(async a => {
+      const href = a.getAttribute('href') || '';
+      const txt = a.textContent.trim();
+      const newHref = await resolveUrlFromHrefOrText(href, txt);
+      a.setAttribute('href', newHref);
+    });
+    await Promise.all(jobs);
+  }
+
+  /* ===========================
+     HTML enrichment (teaser/img)
+     =========================== */
   async function tryFetch(url) {
     const u = new URL(url, location.origin);
     const base = sanitize(u.pathname);
@@ -204,7 +309,6 @@
     pageCache.set(url, p); return p;
   }
 
-  // Add a small helper to badge cards (used for ENR404/NO CONTENT)
   function addBadge(itemId, text, bg = '#555') {
     if (!Debug.isOn()) return;
     const el = [...document.querySelectorAll('.card')].find(n => n._itemId === itemId);
@@ -215,7 +319,9 @@
     el.appendChild(b);
   }
 
-  // ---------- Adapt Obsidian JSON → viewer data ----------
+  /* ===========================
+     Adapt Obsidian JSON → data
+     =========================== */
   function adaptCanvas(json) {
     const items = []; const edges = [];
     for (const n of json.nodes || []) {
@@ -243,6 +349,9 @@
     return { items, edges };
   }
 
+  /* ===========================
+     Resolve links & enrich
+     =========================== */
   function resolveLinks(app) {
     for (const it of (app.data.items || [])) {
       if (!it._needsManifestResolve) continue;
@@ -250,6 +359,8 @@
       delete it._needsManifestResolve;
     }
     app.render();
+    // After render, rewrite any anchors inside cards to real published URLs
+    rewriteLinksInDOM().catch(() => {});
   }
 
   async function enrich(app) {
@@ -272,6 +383,7 @@
                 addBadge(it.id, 'NO CONTENT', '#7f8c8d');
               }
               app.render();
+              await rewriteLinksInDOM();
             } catch (e) {
               addBadge(it.id, 'ENR 404', '#555');
               if (Debug.isOn()) console.warn('Enrich failed for', it.link, e);
@@ -285,7 +397,9 @@
     });
   }
 
-  // ---------- Positions load/save ----------
+  /* ===========================
+     Positions load/save
+     =========================== */
   async function tryLoadPositions(url='/canvas/tir.positions.json'){
     try { const r=await fetch(url,{credentials:'same-origin'}); if(!r.ok) return null; const j=await r.json(); return j?.positions||null; } catch { return null; }
   }
@@ -300,7 +414,6 @@
     try{
       btn && (btn.disabled=true, btn.classList.add('saving'), btn.textContent='Saving…');
 
-      // Ask for password (remember in localStorage for convenience)
       let auth = localStorage.getItem('canvasSaveAuth');
       if (!auth) {
         auth = prompt('Enter canvas save password:') || '';
@@ -315,7 +428,7 @@
         path: 'src/site/canvas/tir.positions.json',
         data: { positions, updatedAt: new Date().toISOString(), version: 1 },
         message: 'chore(canvas): update node positions',
-        auth // ← send password to function
+        auth
       };
 
       const r = await fetch('/api/save-canvas', {
@@ -338,7 +451,9 @@
     }
   }
 
-  // ---------- Toolbar ----------
+  /* ===========================
+     Toolbar
+     =========================== */
   function ensureToolbar(){ let tb=$('.toolbar'); if(!tb){ tb=document.createElement('div'); tb.className='toolbar'; document.body.appendChild(tb); } return tb; }
   function ensureBtn(tb,id,label,title){ let b=$('#'+id); if(!b){ b=document.createElement('button'); b.id=id; b.type='button'; b.textContent=label; if(title) b.title=title; tb.appendChild(b);} return b; }
   function wireToolbar(){
@@ -350,11 +465,12 @@
     };
     ensureBtn(tb,'btn-save-repo','Save to Repo','Commit canvas positions to repository').onclick = savePositionsToRepo;
     if (!$('#zoom-level')) { const span=document.createElement('span'); span.id='zoom-level'; span.textContent='100%'; span.style.marginLeft='8px'; tb.appendChild(span); }
-    // attach debug toggle AFTER toolbar exists
     Debug.initToggle();
   }
 
-  // ---------- boot ----------
+  /* ===========================
+     Boot
+     =========================== */
   (async () => {
     try {
       await loadManifest();
@@ -368,6 +484,7 @@
 
       // Initial left-biased fit and slightly more zoomed out
       app.fitToView({ margin: 160, bias: 'left', zoomOut: 1.25, extraShiftX: 0 });
+      await rewriteLinksInDOM();
     } catch (e) {
       if (Debug.isOn()) console.error('Failed to load/enrich canvas:', e);
       app.setData({ items: [], edges: [] });
@@ -376,7 +493,9 @@
     wireToolbar();
   })();
 
-  // ---------- Adapt (same as above helper, kept local) ----------
+  /* ===========================
+     (local) adaptCanvas helper
+     =========================== */
   function adaptCanvas(json) {
     const items = []; const edges = [];
     for (const n of json.nodes || []) {
@@ -405,8 +524,10 @@
   }
 })();
 
+/* ===========
+   Simple wiki-link resolver (optional, used elsewhere)
+   =========== */
 (function(){
-  // slug helper should match the one you already use
   const slug = s => String(s||'')
     .replace(/&/g,' and ')
     .trim()
@@ -416,7 +537,6 @@
     .replace(/^-|-$/g,'')
     .toLowerCase();
 
-  // Try to resolve by manifest title, then fall back to /slug/
   function resolveByTitle(title) {
     try {
       const t = slug(title);
@@ -428,10 +548,8 @@
     return '/'+slug(title)+'/';
   }
 
-  // canvas will call this for [[Wiki]] and [[Wiki|Alias]]
   window.resolveNoteLink = function(noteTitle){
     const url = resolveByTitle(noteTitle);
-    // ensure trailing slash for your site structure
     return url.endsWith('/') ? url : (url + '/');
   };
 })();
