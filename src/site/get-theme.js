@@ -4,6 +4,21 @@ const fs = require("fs");
 const crypto = require("crypto");
 const {globSync} = require("glob");
 
+// src/site/get-theme.js (append this to whatever you already do to compute "hash")
+import fs from "fs";
+import path from "path";
+
+const stylesDir = "src/site/styles";
+const files = fs.readdirSync(stylesDir);
+const themeHashed = files.find(f => /^_theme\.[^/]+\.css$/.test(f));
+if (!themeHashed) throw new Error("No _theme.<hash>.css found in styles.");
+
+const out = `@import url("/styles/${themeHashed}");\n`;
+fs.writeFileSync(path.join(stylesDir, "theme.css"), out, "utf8");
+console.log("[get-theme] Wrote theme.css →", themeHashed);
+
+
+
 const themeCommentRegex = /\/\*[\s\S]*?\*\//g;
 
 async function getTheme() {
