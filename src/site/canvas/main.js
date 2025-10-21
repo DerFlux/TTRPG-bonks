@@ -1,6 +1,10 @@
 // main.js — Canvas controller: manifest resolve, enrichment with HTML snippets,
-// passworded save + upload, debug toggle (no refresh), positions, link rewriting.
-// Works with canvas.js that adds el._itemId to each card element.
+// passworded save + upload, debug toggle (no refresh), positions, link rewriting,
+// password-gated Link Inspector GUI with alias saving to repo.
+//
+// Requires: canvas.js that adds el._itemId to each card element.
+// Expects:  /page-manifest.json, /canvas/tir.canvas.json, /api/save-canvas,
+//           (optional) /canvas/tir.positions.json, /canvas/link-aliases.json
 
 (function () {
   /* ---------- tiny DOM helpers ---------- */
@@ -15,7 +19,7 @@
   window.CanvasAppInstance = app;
 
   /* ===========================
-   * Debug (global, instant toggle)
+   * Debug (global, instant toggle) — password-gated on enable
    * =========================== */
   const Debug = (() => {
     let on = false;
@@ -37,19 +41,33 @@
       on = !!v;
       try { localStorage.setItem('canvasDebug', on ? '1' : '0'); } catch {}
       apply();
+      try { document.dispatchEvent(new CustomEvent('canvas-debug-changed', { detail: { on } })); } catch {}
     }
     function initToggle() {
       const tb = $('.toolbar'); if (!tb || $('#debug-toggle')) return;
       const wrap = document.createElement('label');
       wrap.className = 'debug-wrap';
-      wrap.title = 'Show canvas debugging badges and logs';
+      wrap.title = 'Show canvas debugging badges and logs (password required)';
       wrap.innerHTML = `
         <input id="debug-toggle" type="checkbox" />
         <span>Debugging</span>`;
       tb.appendChild(wrap);
       const cb = wrap.querySelector('#debug-toggle');
       cb.checked = on;
-      cb.addEventListener('change', () => set(cb.checked));
+      cb.addEventListener('change', async () => {
+        if (cb.checked) {
+          // require password to enable Debug
+          let auth = localStorage.getItem('canvasSaveAuth');
+          if (!auth) {
+            auth = prompt('Enter canvas password to enable Debug:') || '';
+            if (!auth) { cb.checked = false; return; }
+            localStorage.setItem('canvasSaveAuth', auth);
+          }
+          set(true);
+        } else {
+          set(false);
+        }
+      });
     }
     // first paint
     apply();
@@ -142,6 +160,59 @@
     for (const v of variants) for (const e of exts) out.push('/img/user/Images/' + encodeSegs(v) + e);
     return out;
   };
+
+  /* ===========================
+   * Dynamic link aliases (persisted)
+   * =========================== */
+  let LinkAliases = { byText: {}, updatedAt: null };
+  const DEFAULT_ALIASES = {
+    byText: {
+      "Avalon": "Avalon (Between Astra & Terra)",
+      "Abigale": "Abigale Teach",
+      "Cartha": "Cartha Coccineus, the Scarlet Priestess",
+      "Xavier Crepus": "Xavier Crepus",
+      "Amantha the fourth": "Amantha the Fourth",
+      "Argent": "Argent",
+      "Kingdom of Midgard": "Kingdom of Midgard",
+      "Leones": "Leones",
+      "The Coastal Coalition": "The Coastal Coalition"
+    }
+  };
+  async function loadAliases() {
+    try {
+      const r = await fetch('/canvas/link-aliases.json', { credentials: 'same-origin' });
+      if (r.ok) {
+        const j = await r.json();
+        if (j && typeof j === 'object') LinkAliases = j;
+      }
+    } catch {}
+    LinkAliases.byText = { ...DEFAULT_ALIASES.byText, ...(LinkAliases.byText || {}) };
+  }
+  async function saveAliasesToRepo() {
+    let auth = localStorage.getItem('canvasSaveAuth');
+    if (!auth) {
+      auth = prompt('Enter canvas password:') || '';
+      if (!auth) throw new Error('No password');
+      localStorage.setItem('canvasSaveAuth', auth);
+    }
+    const payload = {
+      path: 'src/site/canvas/link-aliases.json',
+      data: { ...LinkAliases, updatedAt: new Date().toISOString() },
+      message: 'chore(canvas): update link aliases',
+      auth
+    };
+    const r = await fetch('/api/save-canvas', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(payload)
+    });
+    if (r.status === 401) {
+      localStorage.removeItem('canvasSaveAuth');
+      throw new Error('Unauthorized');
+    }
+    if (!r.ok) throw new Error('Save failed '+r.status);
+  }
 
   /* ===========================
    * Manifest (page-manifest.json)
@@ -245,65 +316,53 @@
     return null;
   }
 
-  /* ===== Dynamic link aliases (stored in repo) =====
-   File path: src/site/canvas/link-aliases.json
-   Shape: { byText: { "Abigale": "Abigale Teach", ... }, updatedAt: ISO }
-*/
-let LinkAliases = { byText: {}, updatedAt: null };
+  /* ===========================
+   * Link rewriting inside cards
+   * =========================== */
+  function pickBest(arr) { if (!arr || !arr.length) return null; return arr.find(e => e.url) || arr[0]; }
 
-// sensible defaults we’ll merge on first load (you can delete later)
-const DEFAULT_ALIASES = {
-  byText: {
-    "Avalon": "Avalon (Between Astra & Terra)",
-    "Abigale": "Abigale Teach",
-    "Cartha": "Cartha Coccineus, the Scarlet Priestess",
-    "Xavier Crepus": "Xavier Crepus",
-    "Amantha the fourth": "Amantha the Fourth",
-    "Argent": "Argent",
-    "Kingdom of Midgard": "Kingdom of Midgard",
-    "Leones": "Leones",
-    "The Coastal Coalition": "The Coastal Coalition"
-  }
-};
+  async function ensureManifestForLinks() { if (!M) await loadManifest(); return M; }
 
-async function loadAliases() {
-  try {
-    const r = await fetch('/canvas/link-aliases.json', { credentials: 'same-origin' });
-    if (r.ok) {
-      const j = await r.json();
-      if (j && typeof j === 'object') LinkAliases = j;
+  async function resolveUrlFromHrefOrText(href, text) {
+    await ensureManifestForLinks();
+    if (/^https?:\/\//i.test(href)) return href;
+
+    // 1) explicit alias by visible text → treat as desired page title
+    if (text && LinkAliases.byText && LinkAliases.byText[text]) {
+      const targetTitle = LinkAliases.byText[text];
+      const tHit = M.byTitle.get(slug(targetTitle));
+      const pick = tHit && tHit.length ? (tHit.find(e => e.url) || tHit[0]) : null;
+      if (pick?.url) return pick.url;
     }
-  } catch {}
-  // merge defaults (don’t overwrite user entries)
-  LinkAliases.byText = { ...DEFAULT_ALIASES.byText, ...(LinkAliases.byText || {}) };
-}
 
-async function saveAliasesToRepo() {
-  let auth = localStorage.getItem('canvasSaveAuth');
-  if (!auth) {
-    auth = prompt('Enter canvas password:') || '';
-    if (!auth) throw new Error('No password');
-    localStorage.setItem('canvasSaveAuth', auth);
-  }
-  const payload = {
-    path: 'src/site/canvas/link-aliases.json',
-    data: { ...LinkAliases, updatedAt: new Date().toISOString() },
-    message: 'chore(canvas): update link aliases',
-    auth
-  };
-  const r = await fetch('/api/save-canvas', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    credentials: 'same-origin',
-    body: JSON.stringify(payload)
-  });
-  if (r.status === 401) {
-    localStorage.removeItem('canvasSaveAuth');
-    throw new Error('Unauthorized');
-  }
-  if (!r.ok) throw new Error('Save failed '+r.status);
-}
+    const clean = decodeURIComponent(href || '').replace(/^\/+/, '').replace(/&amp;/gi, 'and');
+    const stem1 = slug(stripExt(clean));
+    const stem2 = slug(clean.split('/').pop() || '');
+    const stem3 = slug(clean.split('/').slice(-2).join('/') || '');
 
+    const byStem  = M.byKey;
+    const byTitle = M.byTitle;
+
+    let hit = pickBest(byStem.get(stem1)) || pickBest(byStem.get('/'+stem1))
+           || pickBest(byStem.get(stem2)) || pickBest(byStem.get(stem3));
+    if (hit?.url) return hit.url;
+
+    if (text) {
+      hit = pickBest(byTitle.get(slug(text)));
+      if (hit?.url) return hit.url;
+    }
+    return href;
+  }
+
+  async function rewriteLinksInDOM(root = document) {
+    const anchors = root.querySelectorAll('.card .md-body a[href]');
+    await Promise.all(Array.from(anchors).map(async a => {
+      const href = a.getAttribute('href') || '';
+      const txt  = a.textContent.trim();
+      const newHref = await resolveUrlFromHrefOrText(href, txt);
+      a.setAttribute('href', newHref);
+    }));
+  }
 
   /* ===========================
    * Enrichment helpers (HTML snippet + image)
@@ -698,228 +757,169 @@ async function saveAliasesToRepo() {
   }
 
   function wireToolbar() {
-  const tb = ensureToolbar();
+    const tb = ensureToolbar();
+    ensureBtn(tb, 'btn-reset', 'Reset View').onclick = () => app.resetView();
+    ensureBtn(tb, 'btn-save', 'Download JSON').onclick = () => {
+      const blob = new Blob([JSON.stringify(app.getData(), null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement('a'), { href: url, download: 'data.json' });
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    };
+    ensureBtn(tb, 'btn-save-repo', 'Save to Repo', 'Commit canvas positions to repository').onclick = savePositionsToRepo;
 
-  // --- existing buttons ---
-  ensureBtn(tb, 'btn-reset', 'Reset View').onclick = () => app.resetView();
+    wireUploadUI(tb);
 
-  ensureBtn(tb, 'btn-save', 'Download JSON').onclick = () => {
-    const blob = new Blob([JSON.stringify(app.getData(), null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = Object.assign(document.createElement('a'), { href: url, download: 'data.json' });
-    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-  };
-
-  ensureBtn(tb, 'btn-save-repo', 'Save to Repo', 'Commit canvas positions to repository')
-    .onclick = savePositionsToRepo;
-
-  wireUploadUI(tb);
-
-  if (!$('#zoom-level')) {
-    const span = document.createElement('span');
-    span.id = 'zoom-level';
-    span.textContent = '100%';
-    span.style.marginLeft = '8px';
-    tb.appendChild(span);
-  }
-
-  // --- DEBUG TOGGLE (password-gated) ---
-  // Your Debug.initToggle() should render the checkbox (id: debug-toggle).
-  // If initToggle returns the checkbox, use that; otherwise query for it.
-  const dbgCheckbox = Debug.initToggle?.() || tb.querySelector('#debug-toggle');
-
-  // Robust fallback if your initToggle didn't return/attach an id.
-  const cb = dbgCheckbox || tb.querySelector('input[type="checkbox"][data-role="debug-toggle"]')
-           || document.getElementById('debug-toggle');
-
-  const setDebug = (on) => {
-    if (typeof Debug.set === 'function') Debug.set(on);
-    else if (on && Debug.enable) Debug.enable();
-    else if (!on && Debug.disable) Debug.disable();
-  };
-
-  async function requirePassword() {
-    let auth = localStorage.getItem('canvasSaveAuth');
-    if (!auth) {
-      auth = prompt('Enter canvas password to enable Debug:') || '';
-      if (!auth) return null;
-      localStorage.setItem('canvasSaveAuth', auth);
+    if (!$('#zoom-level')) {
+      const span = document.createElement('span');
+      span.id = 'zoom-level'; span.textContent = '100%'; span.style.marginLeft = '8px';
+      tb.appendChild(span);
     }
-    return auth;
+    Debug.initToggle();
+
+    // If debug already on at load, expose Link Inspector button
+    if (Debug.isOn()) LinkInspector.ensureButton();
   }
 
-  async function onDebugChange(e) {
-    if (!cb) return;
-    if (cb.checked) {
-      // Gate enabling behind password
-      const ok = await requirePassword();
-      if (!ok) { cb.checked = false; return; }
-      setDebug(true);
-      // Show Link Inspector button when Debug is ON
-      if (typeof LinkInspector?.ensureButton === 'function') {
-        LinkInspector.ensureButton();
-      }
-    } else {
-      setDebug(false);
-      if (typeof LinkInspector?.hidePanel === 'function') {
-        LinkInspector.hidePanel();
-      }
+  /* ===========================
+   * Link Inspector (Debug-only, password gated via Debug toggle)
+   * =========================== */
+  const LinkInspector = (() => {
+    let panel = null;
+    let btn   = null;
+
+    function ensureButton() {
+      if (!Debug.isOn()) return;
+      if (btn && document.body.contains(btn)) return;
+      const tb = document.querySelector('.toolbar'); if (!tb) return;
+      btn = document.createElement('button');
+      btn.id = 'btn-link-inspector';
+      btn.textContent = 'Link Inspector';
+      btn.title = 'Inspect and repair inline links on cards';
+      btn.addEventListener('click', openPanel);
+      tb.appendChild(btn);
     }
-  }
 
-  if (cb) {
-    // Remove any previous handler we might have attached
-    if (cb._liHandler) cb.removeEventListener('change', cb._liHandler);
-    cb._liHandler = onDebugChange;
-    cb.addEventListener('change', onDebugChange);
-
-    // If Debug was already on (e.g., persisted), ensure the inspector button exists
-    if (typeof Debug.isOn === 'function' ? Debug.isOn() : cb.checked) {
-      if (typeof LinkInspector?.ensureButton === 'function') {
-        LinkInspector.ensureButton();
-      }
+    function hidePanel() {
+      if (panel) panel.remove();
+      panel = null;
+      setHighlight(false);
     }
-  }
-}
 
+    function setHighlight(on) {
+      document.documentElement.classList.toggle('show-link-targets', !!on);
+      // mark anchors visually
+      document.querySelectorAll('.card .md-body a[href]').forEach(a => {
+        a.classList.toggle('li-mark', !!on);
+      });
+    }
 
-/* ===========================
- * Link Inspector (Debug-only, password gated)
- * =========================== */
-const LinkInspector = (() => {
-  let panel = null;
-  let btn   = null;
-  let highlighting = false;
-
-  function ensureButton() {
-    if (!Debug.isOn()) return;
-    if (btn && document.body.contains(btn)) return;
-    const tb = document.querySelector('.toolbar'); if (!tb) return;
-    btn = document.createElement('button');
-    btn.id = 'btn-link-inspector';
-    btn.textContent = 'Link Inspector';
-    btn.title = 'Inspect and repair inline links on cards';
-    btn.addEventListener('click', openPanel);
-    tb.appendChild(btn);
-  }
-
-  function hidePanel() {
-    if (panel) panel.remove();
-    panel = null;
-    setHighlight(false);
-  }
-
-  function setHighlight(on) {
-    highlighting = !!on;
-    document.documentElement.classList.toggle('show-link-targets', highlighting);
-    // mark anchors
-    document.querySelectorAll('.card .md-body a[href]').forEach(a => {
-      a.classList.toggle('li-mark', highlighting);
-    });
-  }
-
-  function uiRow(a, status, fixedUrl) {
-    const row = document.createElement('div');
-    row.className = 'li-row';
-    const text = (a.textContent || '').trim();
-    const href = a.getAttribute('href') || '';
-
-    row.innerHTML = `
-      <div class="li-col li-text"><strong>${escapeHtml(text)}</strong></div>
-      <div class="li-col li-href"><a href="${fixedUrl || href}" target="_blank">${escapeHtml(fixedUrl || href)}</a></div>
-      <div class="li-col li-status"><span class="li-badge ${status.ok?'ok':'bad'}">${status.ok?'OK':'404'}</span></div>
-      <div class="li-col li-edit">
-        <input class="li-input" type="text" placeholder="Target page title or full URL" value="${escapeAttr(LinkAliases.byText[text] || '')}" />
-        <button class="li-apply">Apply</button>
-      </div>
-    `;
-
-    row.querySelector('.li-apply').addEventListener('click', async () => {
-      const v = row.querySelector('.li-input').value.trim();
-      if (!v) { delete LinkAliases.byText[text]; row.querySelector('.li-input').value=''; return; }
-      LinkAliases.byText[text] = v;
-      // Re-resolve this anchor immediately
-      const newHref = await resolveUrlFromHrefOrText(href, text);
-      a.setAttribute('href', newHref);
-      row.querySelector('.li-href').innerHTML = `<a href="${newHref}" target="_blank">${escapeHtml(newHref)}</a>`;
-      const st = await checkUrl(newHref);
-      row.querySelector('.li-badge').className = 'li-badge ' + (st.ok?'ok':'bad');
-      row.querySelector('.li-badge').textContent = st.ok?'OK':'404';
-    });
-
-    return row;
-  }
-
-  function openPanel() {
-    if (panel) { hidePanel(); return; }
-    panel = document.createElement('aside');
-    panel.className = 'li-panel';
-    panel.innerHTML = `
-      <header class="li-head">
-        <strong>Link Inspector</strong>
-        <div class="li-actions">
-          <label><input id="li-highlight" type="checkbox"> Highlight links on cards</label>
-          <button id="li-save">Save Mappings</button>
-          <button id="li-close">Close</button>
-        </div>
-      </header>
-      <div class="li-body"><div class="li-list">Scanning…</div></div>
-    `;
-    document.body.appendChild(panel);
-
-    $('#li-close', panel).addEventListener('click', hidePanel);
-    $('#li-highlight', panel).addEventListener('change', (e) => setHighlight(e.target.checked));
-    $('#li-save', panel).addEventListener('click', async () => {
-      try {
-        $('#li-save', panel).textContent = 'Saving…';
-        await saveAliasesToRepo();
-        $('#li-save', panel).textContent = 'Saved ✓';
-        setTimeout(() => { $('#li-save', panel).textContent = 'Save Mappings'; }, 900);
-      } catch (e) {
-        console.error(e);
-        alert('Saving failed. See console.');
-        $('#li-save', panel).textContent = 'Save Mappings';
-      }
-    });
-
-    buildList(panel.querySelector('.li-list'));
-  }
-
-  async function buildList(target) {
-    const anchors = Array.from(document.querySelectorAll('.card .md-body a[href]'));
-    if (!anchors.length) { target.textContent = 'No links found on visible cards.'; return; }
-
-    // resolve + status check in small concurrency
-    target.innerHTML = '';
-    const pool = anchors.map(async a => {
+    function uiRow(a, status, fixedUrl) {
+      const row = document.createElement('div');
+      row.className = 'li-row';
+      const text = (a.textContent || '').trim();
       const href = a.getAttribute('href') || '';
-      const fixed = await resolveUrlFromHrefOrText(href, (a.textContent||'').trim());
-      if (fixed !== href) a.setAttribute('href', fixed);
-      const st = await checkUrl(fixed);
-      target.appendChild(uiRow(a, st, fixed));
-    });
-    await Promise.all(pool);
-  }
 
-  async function checkUrl(u) {
-    try {
-      const r = await fetch(u, { credentials: 'same-origin' });
-      return { ok: r.ok, status: r.status };
-    } catch { return { ok: false, status: 0 }; }
-  }
+      row.innerHTML = `
+        <div class="li-col li-text"><strong>${escapeHtml(text)}</strong></div>
+        <div class="li-col li-href"><a href="${fixedUrl || href}" target="_blank">${escapeHtml(fixedUrl || href)}</a></div>
+        <div class="li-col li-status"><span class="li-badge ${status.ok?'ok':'bad'}">${status.ok?'OK':'404'}</span></div>
+        <div class="li-col li-edit">
+          <input class="li-input" type="text" placeholder="Target page title or full URL" value="${escapeAttr(LinkAliases.byText[text] || '')}" />
+          <button class="li-apply">Apply</button>
+        </div>
+      `;
 
-  function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-  function escapeAttr(s) { return escapeHtml(s); }
+      row.querySelector('.li-apply').addEventListener('click', async () => {
+        const v = row.querySelector('.li-input').value.trim();
+        if (!v) { delete LinkAliases.byText[text]; row.querySelector('.li-input').value=''; return; }
+        LinkAliases.byText[text] = v;
+        // Re-resolve this anchor immediately
+        const newHref = await resolveUrlFromHrefOrText(href, text);
+        a.setAttribute('href', newHref);
+        row.querySelector('.li-href').innerHTML = `<a href="${newHref}" target="_blank">${escapeHtml(newHref)}</a>`;
+        const st = await checkUrl(newHref);
+        row.querySelector('.li-badge').className = 'li-badge ' + (st.ok?'ok':'bad');
+        row.querySelector('.li-badge').textContent = st.ok?'OK':'404';
+      });
 
-  return { ensureButton, hidePanel };
-})();
+      return row;
+    }
 
+    function openPanel() {
+      if (panel) { hidePanel(); return; }
+      panel = document.createElement('aside');
+      panel.className = 'li-panel';
+      panel.innerHTML = `
+        <header class="li-head">
+          <strong>Link Inspector</strong>
+          <div class="li-actions">
+            <label><input id="li-highlight" type="checkbox"> Highlight links on cards</label>
+            <button id="li-save">Save Mappings</button>
+            <button id="li-close">Close</button>
+          </div>
+        </header>
+        <div class="li-body"><div class="li-list">Scanning…</div></div>
+      `;
+      document.body.appendChild(panel);
+
+      $('#li-close', panel).addEventListener('click', hidePanel);
+      $('#li-highlight', panel).addEventListener('change', (e) => setHighlight(e.target.checked));
+      $('#li-save', panel).addEventListener('click', async () => {
+        try {
+          $('#li-save', panel).textContent = 'Saving…';
+          await saveAliasesToRepo();
+          $('#li-save', panel).textContent = 'Saved ✓';
+          setTimeout(() => { $('#li-save', panel).textContent = 'Save Mappings'; }, 900);
+        } catch (e) {
+          console.error(e);
+          alert('Saving failed. See console.');
+          $('#li-save', panel).textContent = 'Save Mappings';
+        }
+      });
+
+      buildList(panel.querySelector('.li-list'));
+    }
+
+    async function buildList(target) {
+      const anchors = Array.from(document.querySelectorAll('.card .md-body a[href]'));
+      if (!anchors.length) { target.textContent = 'No links found on visible cards.'; return; }
+
+      target.innerHTML = '';
+      const pool = anchors.map(async a => {
+        const href = a.getAttribute('href') || '';
+        const fixed = await resolveUrlFromHrefOrText(href, (a.textContent||'').trim());
+        if (fixed !== href) a.setAttribute('href', fixed);
+        const st = await checkUrl(fixed);
+        target.appendChild(uiRow(a, st, fixed));
+      });
+      await Promise.all(pool);
+    }
+
+    async function checkUrl(u) {
+      try {
+        const r = await fetch(u, { credentials: 'same-origin' });
+        return { ok: r.ok, status: r.status };
+      } catch { return { ok: false, status: 0 }; }
+    }
+
+    function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+    function escapeAttr(s) { return escapeHtml(s); }
+
+    return { ensureButton, hidePanel };
+  })();
+
+  // Respond to debug changes to show/hide Inspector affordances
+  document.addEventListener('canvas-debug-changed', (e) => {
+    if (e.detail?.on) LinkInspector.ensureButton();
+    else LinkInspector.hidePanel();
+  });
 
   /* ===========================
    * Boot
    * =========================== */
   (async () => {
     try {
+      await loadAliases();       // load persisted aliases first
       await loadManifest();
       // Load canvas JSON, merge saved positions (if any), then render
       let obsidian = await (await fetch('tir.canvas.json')).json();
