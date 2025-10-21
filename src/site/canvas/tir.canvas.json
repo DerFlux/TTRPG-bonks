@@ -438,7 +438,6 @@
     },
     {
       "id": "411763a60a6b1354",
-      "toFloating": false,
       "fromNode": "c77a2d31f94996df",
       "fromSide": "bottom",
       "toNode": "41007c06b417dff9",
