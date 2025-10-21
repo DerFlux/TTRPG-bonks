@@ -1,6 +1,6 @@
-// main.js — controller with manifest resolve, enrichment, debug (global),
-// link rewriting to correct published URLs, safe save (passworded), left-biased fit,
-// and **UPLOAD .canvas** to repo + live reload.
+// main.js — controller with manifest resolve, enrichment, debug replay, link rewriting,
+// positions save, upload, and left-biased fit.
+
 (function () {
   const $ = (q, r=document) => r.querySelector(q);
   const container = $('#canvas-container');
@@ -9,10 +9,18 @@
   window.CanvasAppInstance = app;
 
   /* ===========================
-     Debug (GLOBAL, opt-in only)
+     Debug (GLOBAL, with replay)
      =========================== */
+  const Diagnostics = new Map(); // id -> [{msg,color}]
+  function recordDiag(id, msg, color) {
+    const arr = Diagnostics.get(id) || [];
+    arr.push({ msg, color });
+    Diagnostics.set(id, arr);
+  }
+
   const Debug = (() => {
     let on = false;
+    const listeners = [];
     try {
       const qs = new URLSearchParams(location.search);
       if (qs.get('debug') === '1') on = true;
@@ -23,21 +31,41 @@
       try { localStorage.setItem('canvasDebug', on ? '1' : '0'); } catch {}
       document.documentElement.classList.toggle('canvas-debug', on);
       const cb = $('#debug-toggle'); if (cb) cb.checked = on;
+      listeners.forEach(fn => { try { fn(on); } catch {} });
     }
+    function onChange(fn){ listeners.push(fn); }
     function initToggle() {
       const tb = $('.toolbar'); if (!tb || $('#debug-toggle')) return;
       const wrap = document.createElement('label');
       wrap.style.cssText = 'display:flex;align-items:center;gap:6px;margin-left:6px;font:12px/1.2 monospace;opacity:.75;';
-      wrap.title = 'Show canvas debugging badges and logs';
-      wrap.innerHTML = `<input id="debug-toggle" type="checkbox" style="accent-color: currentColor;"><span>Debugging</span>`;
+      wrap.innerHTML = `<input id="debug-toggle" type="checkbox" style="accent-color:currentColor"><span>Debugging</span>`;
       tb.appendChild(wrap);
       const cb = wrap.querySelector('#debug-toggle');
-      cb.checked = on; cb.addEventListener('change', () => set(cb.checked));
+      cb.checked = on;
+      cb.addEventListener('change', () => set(cb.checked));
     }
     set(on);
-    return { isOn: () => on, set, initToggle };
+    return { isOn:()=>on, set, initToggle, onChange };
   })();
   window.Debug = Debug;
+
+  /* When debug is turned on after render, replay badges that were recorded. */
+  Debug.onChange((state) => {
+    // clear old badges
+    document.querySelectorAll('.card .dbg-badge').forEach(n => n.remove());
+    if (!state) return;
+    for (const [id, arr] of Diagnostics.entries()) {
+      const el = [...document.querySelectorAll('.card')].find(n => n._itemId === id);
+      if (!el) continue;
+      for (const {msg, color} of arr) {
+        const b = document.createElement('div');
+        b.className = 'dbg-badge';
+        b.textContent = msg;
+        b.style.cssText = `position:absolute;top:8px;left:8px;background:${color||'#555'};color:#fff;font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px;margin-bottom:4px`;
+        el.appendChild(b);
+      }
+    }
+  });
 
   /* ===========
      Helpers
@@ -62,7 +90,7 @@
 
   const noteUrlFromVault = (vp) => {
     if (!vp || isImg(vp)) return null;
-    const parts = vp.replace(/\.md$/i,'').split('/').map((seg,i)=>{
+    const parts = vp.replace(/\.md$/i, '').split('/').map((seg,i)=>{
       const sl = slug(seg);
       if (i===0 && /^3-?npcs$/.test(sl)) return '3-np-cs';
       return sl;
@@ -220,7 +248,7 @@
   }
 
   /* ===========================
-     HTML enrichment (teaser/img)
+     Enrichment helpers
      =========================== */
   async function tryFetch(url) {
     const u = new URL(url, location.origin);
@@ -271,19 +299,35 @@
   }
 
   function addBadge(itemId, text, bg = '#555') {
+    recordDiag(itemId, text, bg);
     if (!Debug.isOn()) return;
     const el = [...document.querySelectorAll('.card')].find(n => n._itemId === itemId);
     if (!el) return;
     const b = document.createElement('div');
+    b.className = 'dbg-badge';
     b.textContent = text;
-    b.style.cssText = `position:absolute;top:8px;left:8px;background:${bg};color:#fff;font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px;`;
+    b.style.cssText = `position:absolute;top:8px;left:8px;background:${bg};color:#fff;font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px`;
     el.appendChild(b);
   }
 
   /* ===========================
      Adapt Obsidian JSON → data
+     (with sibling-image fallback)
      =========================== */
+  function buildImageIndex(json){
+    const idx = new Map(); // name -> candidate URL
+    for (const n of json.nodes || []) {
+      if (n.type === 'file' && isImg(n.file)) {
+        const name = slug(stripExt(lastSeg(n.file)));
+        const cand = imageCandidatesFromVault(n.file)[0];
+        if (name && cand) idx.set(name, cand);
+      }
+    }
+    return idx;
+  }
+
   function adaptCanvas(json) {
+    const imageIdx = buildImageIndex(json);
     const items = []; const edges = [];
     for (const n of json.nodes || []) {
       const common = { id: n.id, x: Number.isFinite(n.x)?n.x:0, y: Number.isFinite(n.y)?n.y:0 };
@@ -300,7 +344,12 @@
           items.push({ ...common, title: f.split('/').pop().replace(/\.[^.]+$/,''), description:'', imageCandidates: imageCandidatesFromVault(f) });
         } else {
           const parts = f.replace(/\.md$/i, '').split('/'); const title = parts.pop(); const crumb = parts.length ? parts.join(' › ') : '';
-          items.push({ ...common, title, description: crumb, _canvasPath: f, _needsManifestResolve: true, _needsEnrich: true, _nameGuesses: nameImageGuesses(title) });
+          const it = { ...common, title, description: crumb, _canvasPath: f, _needsManifestResolve: true, _needsEnrich: true, _nameGuesses: nameImageGuesses(title) };
+          // NEW: sibling image with same name (fixes Eurea, etc.)
+          const key = slug(stripExt(title));
+          const sib = imageIdx.get(key);
+          if (sib) it.imageCandidates = [sib, ...(it._nameGuesses||[])];
+          items.push(it);
         }
         continue;
       }
@@ -410,7 +459,7 @@
   }
 
   /* ===========================
-     UPLOAD .canvas → commit & load
+     Upload .canvas → commit & load
      =========================== */
   async function commitFileToRepo(path, dataObj, message){
     let auth = localStorage.getItem('canvasSaveAuth');
@@ -435,7 +484,7 @@
   }
 
   async function loadCanvasObject(json){
-    // Merge in positions if present
+    Diagnostics.clear(); // reset diagnostics for new graph
     let obsidian = json;
     try {
       const pos = await tryLoadPositions();
@@ -447,10 +496,11 @@
     await enrich(app);
     app.fitToView({ margin: 160, bias: 'left', zoomOut: 1.25, extraShiftX: 0 });
     await rewriteLinksInDOM();
+    // If debug is currently ON, replay badges on the fresh render
+    if (Debug.isOn()) Debug.set(true);
   }
 
   function wireUploadUI(tb){
-    // hidden file input
     let fi = $('#canvas-file-input');
     if (!fi) {
       fi = document.createElement('input');
@@ -470,18 +520,11 @@
           btn.disabled = true; btn.textContent = 'Uploading…';
           const text = await f.text();
           const json = JSON.parse(text);
-
-          // basic sanity
           if (!json || !Array.isArray(json.nodes) || !Array.isArray(json.edges)) {
             throw new Error('Not a valid Obsidian .canvas JSON');
           }
-
-          // Commit to repo
           await commitFileToRepo('src/site/canvas/tir.canvas.json', json, `chore(canvas): replace tir.canvas.json via upload (${f.name})`);
-
-          // Load immediately
           await loadCanvasObject(json);
-
           btn.textContent = 'Uploaded ✓';
           setTimeout(()=>{ btn.textContent='Upload .canvas'; btn.disabled=false; }, 1200);
         } catch (e) {
@@ -493,24 +536,6 @@
       };
       fi.click();
     };
-
-    // Optional: drag & drop anywhere
-    window.addEventListener('dragover', e => { e.preventDefault(); });
-    window.addEventListener('drop', async e => {
-      if (!e.dataTransfer) return;
-      const f = [...e.dataTransfer.files].find(x => /\.canvas$/i.test(x.name) || /json$/i.test(x.name));
-      if (!f) return;
-      e.preventDefault();
-      try {
-        const text = await f.text();
-        const json = JSON.parse(text);
-        await commitFileToRepo('src/site/canvas/tir.canvas.json', json, `chore(canvas): replace tir.canvas.json via drag&drop (${f.name})`);
-        await loadCanvasObject(json);
-      } catch (err) {
-        console.error(err);
-        alert('Drag & drop upload failed.');
-      }
-    });
   }
 
   /* ===========================
@@ -526,9 +551,7 @@
       const url = URL.createObjectURL(blob); const a=Object.assign(document.createElement('a'),{href:url,download:'data.json'}); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
     };
     ensureBtn(tb,'btn-save-repo','Save to Repo','Commit canvas positions to repository').onclick = savePositionsToRepo;
-
     wireUploadUI(tb);
-
     if (!$('#zoom-level')) { const span=document.createElement('span'); span.id='zoom-level'; span.textContent='100%'; span.style.marginLeft='8px'; tb.appendChild(span); }
     Debug.initToggle();
   }
@@ -546,75 +569,12 @@
       app.setData(data);
       resolveLinks(app);
       await enrich(app);
-
-      // Initial left-biased fit and slightly more zoomed out
       app.fitToView({ margin: 160, bias: 'left', zoomOut: 1.25, extraShiftX: 0 });
       await rewriteLinksInDOM();
     } catch (e) {
       if (Debug.isOn()) console.error('Failed to load/enrich canvas:', e);
       app.setData({ items: [], edges: [] });
     }
-
     wireToolbar();
   })();
-
-  /* ===========================
-     (local) adaptCanvas helper (duplicate guard for bundlers)
-     =========================== */
-  function adaptCanvas(json) {
-    const items = []; const edges = [];
-    for (const n of json.nodes || []) {
-      const common = { id: n.id, x: Number.isFinite(n.x)?n.x:0, y: Number.isFinite(n.y)?n.y:0 };
-      if (n.type === 'text') {
-        const embeds = extractEmbeds(n.text);
-        const td = titleDesc(stripEmbeds(n.text));
-        const it = { ...common, title: td.title, description: td.desc };
-        if (embeds.length) it.imageCandidates = imageCandidatesFromVault(embeds[0]);
-        items.push(it); continue;
-      }
-      if (n.type === 'file') {
-        const f = String(n.file || '');
-        if (isImg(f)) {
-          items.push({ ...common, title: f.split('/').pop().replace(/\.[^.]+$/,''), description:'', imageCandidates: imageCandidatesFromVault(f) });
-        } else {
-          const parts = f.replace(/\.md$/i, '').split('/'); const title = parts.pop(); const crumb = parts.length ? parts.join(' › ') : '';
-          items.push({ ...common, title, description: crumb, _canvasPath: f, _needsManifestResolve: true, _needsEnrich: true, _nameGuesses: nameImageGuesses(title) });
-        }
-        continue;
-      }
-      items.push({ ...common, title: n.type || 'node', description: n.file || n.text || '' });
-    }
-    for (const e of (json.edges || [])) edges.push({ from: e.fromNode, to: e.toNode, label: e.label || '' });
-    return { items, edges };
-  }
-})();
-
-/* ===========
-   Simple wiki-link resolver (optional, used elsewhere)
-   =========== */
-(function(){
-  const slug = s => String(s||'')
-    .replace(/&/g,' and ')
-    .trim()
-    .replace(/\./g,' ')
-    .replace(/[^\p{L}\p{N}]+/gu,'-')
-    .replace(/-+/g,'-')
-    .replace(/^-|-$/g,'')
-    .toLowerCase();
-
-  function resolveByTitle(title) {
-    try {
-      const t = slug(title);
-      if (window.__PageManifestIndex && window.__PageManifestIndex.byTitle) {
-        const hit = window.__PageManifestIndex.byTitle.get(t);
-        if (hit && hit.length) return (hit.find(e=>!!e.url) || hit[0]).url || ('/'+t+'/');
-      }
-    } catch {}
-    return '/'+slug(title)+'/';
-  }
-
-  window.resolveNoteLink = function(noteTitle){
-    const url = resolveByTitle(noteTitle);
-    return url.endsWith('/') ? url : (url + '/');
-  };
 })();
