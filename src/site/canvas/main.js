@@ -1,6 +1,6 @@
 // main.js — controller with manifest resolve, enrichment, debug (global),
 // link rewriting to correct published URLs, safe save (passworded), left-biased fit,
-// and UPLOAD .canvas to repo + live reload + image-index from canvas image nodes.
+// and **UPLOAD .canvas** to repo + live reload.
 (function () {
   const $ = (q, r=document) => r.querySelector(q);
   const container = $('#canvas-container');
@@ -13,14 +13,11 @@
      =========================== */
   const Debug = (() => {
     let on = false;
-    function readInitial() {
-      try {
-        const qs = new URLSearchParams(location.search);
-        if (qs.get('debug') === '1') on = true;
-        if (localStorage.getItem('canvasDebug') === '1') on = true;
-      } catch {}
-    }
-    readInitial();
+    try {
+      const qs = new URLSearchParams(location.search);
+      if (qs.get('debug') === '1') on = true;
+      if (localStorage.getItem('canvasDebug') === '1') on = true;
+    } catch {}
     function set(v) {
       on = !!v;
       try { localStorage.setItem('canvasDebug', on ? '1' : '0'); } catch {}
@@ -28,18 +25,15 @@
       const cb = $('#debug-toggle'); if (cb) cb.checked = on;
     }
     function initToggle() {
-      const tb = $('.toolbar'); if (!tb) return;
-      if (!$('#debug-toggle')) {
-        const wrap = document.createElement('label');
-        wrap.style.cssText = 'display:flex;align-items:center;gap:6px;margin-left:6px;font:12px/1.2 monospace;opacity:.75;';
-        wrap.title = 'Show canvas debugging badges and logs';
-        wrap.innerHTML = `<input id="debug-toggle" type="checkbox" style="accent-color: currentColor;"><span>Debugging</span>`;
-        tb.appendChild(wrap);
-        wrap.querySelector('#debug-toggle').addEventListener('change', e => set(e.currentTarget.checked));
-      }
-      set(on);
+      const tb = $('.toolbar'); if (!tb || $('#debug-toggle')) return;
+      const wrap = document.createElement('label');
+      wrap.style.cssText = 'display:flex;align-items:center;gap:6px;margin-left:6px;font:12px/1.2 monospace;opacity:.75;';
+      wrap.title = 'Show canvas debugging badges and logs';
+      wrap.innerHTML = `<input id="debug-toggle" type="checkbox" style="accent-color: currentColor;"><span>Debugging</span>`;
+      tb.appendChild(wrap);
+      const cb = wrap.querySelector('#debug-toggle');
+      cb.checked = on; cb.addEventListener('change', () => set(cb.checked));
     }
-    window.addEventListener('DOMContentLoaded', initToggle);
     set(on);
     return { isOn: () => on, set, initToggle };
   })();
@@ -82,7 +76,7 @@
     const m = /^(.*?)(\.[^.]+)?$/.exec(stripped);
     const base = m[1] || stripped;
     const ext  = (m[2]||'').toLowerCase();
-    const exts = ext ? Array.from(new Set([ext, ext.toUpperCase()])) : ['.png','.PNG','.jpg','.JPG','.jpeg','.JPEG','.webp','.WEBP'];
+    const exts = ext ? Array.from(new Set([ext, ext.toUpperCase()])) : ['.png','.PNG','.jpg','.JPG','.jpeg','.JPEG'];
     const prefixes = ['/img/user/Images/','/img/user/images/','/img/'];
     const bases = Array.from(new Set([base, base.toLowerCase()]));
     const c = [];
@@ -93,14 +87,14 @@
   const nameImageGuesses = (title) => {
     if (!title) return [];
     const base = title.replace(/\.[^.]+$/,'');
-    const variants = Array.from(new Set([
+    const vars = Array.from(new Set([
       base,
       base.replace(/[,()]/g,'').replace(/\s+/g,' ').trim(),
       base.replace(/\s+/g,' ')
     ]));
-    const exts = ['.png','.jpg','.jpeg','.webp','.PNG','.JPG','.JPEG','.WEBP'];
+    const exts = ['.png','.jpg','.jpeg','.PNG','.JPG','.JPEG'];
     const out = [];
-    for (const v of variants) for (const e of exts) out.push(`/img/user/Images/${encodeSegs(v)}${e}`);
+    for (const v of vars) for (const e of exts) out.push(`/img/user/Images/${encodeSegs(v)}${e}`);
     return out;
   };
 
@@ -281,29 +275,9 @@
     const el = [...document.querySelectorAll('.card')].find(n => n._itemId === itemId);
     if (!el) return;
     const b = document.createElement('div');
-    b.className = 'debug-badge';
     b.textContent = text;
-    b.style.background = bg;
+    b.style.cssText = `position:absolute;top:8px;left:8px;background:${bg};color:#fff;font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px;`;
     el.appendChild(b);
-  }
-
-  /* ======================================================
-     Build an image index from IMAGE NODES already in canvas
-     ====================================================== */
-  function buildImageIndexFromCanvas(json){
-    const idx = new Map(); // key -> Set(urls)
-    const add = (k, url) => { if (!k || !url) return; const set = idx.get(k) || new Set(); set.add(url); idx.set(k,set); };
-    for (const n of (json.nodes||[])) {
-      if (n.type!=='file' || !isImg(n.file)) continue;
-      const vault = String(n.file||'');
-      for (const c of imageCandidatesFromVault(vault)) {
-        const base = lastSeg(vault).replace(/\.[^.]+$/,'');
-        const k1 = slug(base);
-        add(k1, c);
-        if (n.title) add(slug(n.title), c);
-      }
-    }
-    return idx;
   }
 
   /* ===========================
@@ -311,11 +285,8 @@
      =========================== */
   function adaptCanvas(json) {
     const items = []; const edges = [];
-    const imgIndex = buildImageIndexFromCanvas(json);
-
     for (const n of json.nodes || []) {
       const common = { id: n.id, x: Number.isFinite(n.x)?n.x:0, y: Number.isFinite(n.y)?n.y:0 };
-
       if (n.type === 'text') {
         const embeds = extractEmbeds(n.text);
         const td = titleDesc(stripEmbeds(n.text));
@@ -323,40 +294,18 @@
         if (embeds.length) it.imageCandidates = imageCandidatesFromVault(embeds[0]);
         items.push(it); continue;
       }
-
       if (n.type === 'file') {
         const f = String(n.file || '');
-
         if (isImg(f)) {
           items.push({ ...common, title: f.split('/').pop().replace(/\.[^.]+$/,''), description:'', imageCandidates: imageCandidatesFromVault(f) });
-          continue;
+        } else {
+          const parts = f.replace(/\.md$/i, '').split('/'); const title = parts.pop(); const crumb = parts.length ? parts.join(' › ') : '';
+          items.push({ ...common, title, description: crumb, _canvasPath: f, _needsManifestResolve: true, _needsEnrich: true, _nameGuesses: nameImageGuesses(title) });
         }
-
-        // Markdown note
-        const parts = f.replace(/\.md$/i, '').split('/'); 
-        const title = parts.pop(); 
-        const crumb = parts.length ? parts.join(' › ') : '';
-        const key = slug(title);
-
-        const fromIndex = Array.from(imgIndex.get(key) || []);
-        const guesses   = nameImageGuesses(title);
-
-        items.push({
-          ...common,
-          title,
-          description: crumb,
-          _canvasPath: f,
-          _needsManifestResolve: true,
-          _needsEnrich: true,
-          imageCandidates: Array.from(new Set([...fromIndex])),
-          _nameGuesses: guesses
-        });
         continue;
       }
-
       items.push({ ...common, title: n.type || 'node', description: n.file || n.text || '' });
     }
-
     for (const e of (json.edges || [])) edges.push({ from: e.fromNode, to: e.toNode, label: e.label || '' });
     return { items, edges };
   }
@@ -371,7 +320,6 @@
       delete it._needsManifestResolve;
     }
     app.render();
-    applyPerCardSizing(app);         // <<— call the sizing helper
     rewriteLinksInDOM().catch(() => {});
   }
 
@@ -386,15 +334,13 @@
           (async () => {
             try {
               const info = await fetchPageInfo(it.link);
-              const cands = [];
-              if (it.imageCandidates?.length) cands.push(...it.imageCandidates);
-              if (info.image) cands.push(info.image);
-              if (it._nameGuesses?.length) cands.push(...it._nameGuesses);
+              const cands = []; if (info.image) cands.push(info.image);
+              if (it._nameGuesses) cands.push(...it._nameGuesses);
+              if (it.imageCandidates) cands.push(...it.imageCandidates);
               it.imageCandidates = Array.from(new Set(cands));
               if (info.teaser) it.description = it.description ? `${it.description}\n${info.teaser}` : info.teaser;
               if ((!info.teaser?.trim()) && (!it.imageCandidates?.length)) addBadge(it.id, 'NO CONTENT', '#7f8c8d');
               app.render();
-              applyPerCardSizing(app);  // <<—
               await rewriteLinksInDOM();
             } catch (e) {
               addBadge(it.id, 'ENR 404', '#555');
@@ -500,12 +446,11 @@
     resolveLinks(app);
     await enrich(app);
     app.fitToView({ margin: 160, bias: 'left', zoomOut: 1.25, extraShiftX: 0 });
-    applyPerCardSizing(app);          // <<—
     await rewriteLinksInDOM();
-    Debug.initToggle();
   }
 
   function wireUploadUI(tb){
+    // hidden file input
     let fi = $('#canvas-file-input');
     if (!fi) {
       fi = document.createElement('input');
@@ -525,11 +470,18 @@
           btn.disabled = true; btn.textContent = 'Uploading…';
           const text = await f.text();
           const json = JSON.parse(text);
+
+          // basic sanity
           if (!json || !Array.isArray(json.nodes) || !Array.isArray(json.edges)) {
             throw new Error('Not a valid Obsidian .canvas JSON');
           }
+
+          // Commit to repo
           await commitFileToRepo('src/site/canvas/tir.canvas.json', json, `chore(canvas): replace tir.canvas.json via upload (${f.name})`);
+
+          // Load immediately
           await loadCanvasObject(json);
+
           btn.textContent = 'Uploaded ✓';
           setTimeout(()=>{ btn.textContent='Upload .canvas'; btn.disabled=false; }, 1200);
         } catch (e) {
@@ -541,6 +493,8 @@
       };
       fi.click();
     };
+
+    // Optional: drag & drop anywhere
     window.addEventListener('dragover', e => { e.preventDefault(); });
     window.addEventListener('drop', async e => {
       if (!e.dataTransfer) return;
@@ -572,7 +526,9 @@
       const url = URL.createObjectURL(blob); const a=Object.assign(document.createElement('a'),{href:url,download:'data.json'}); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
     };
     ensureBtn(tb,'btn-save-repo','Save to Repo','Commit canvas positions to repository').onclick = savePositionsToRepo;
+
     wireUploadUI(tb);
+
     if (!$('#zoom-level')) { const span=document.createElement('span'); span.id='zoom-level'; span.textContent='100%'; span.style.marginLeft='8px'; tb.appendChild(span); }
     Debug.initToggle();
   }
@@ -590,35 +546,75 @@
       app.setData(data);
       resolveLinks(app);
       await enrich(app);
+
+      // Initial left-biased fit and slightly more zoomed out
       app.fitToView({ margin: 160, bias: 'left', zoomOut: 1.25, extraShiftX: 0 });
-      applyPerCardSizing(app);        // <<—
       await rewriteLinksInDOM();
     } catch (e) {
       if (Debug.isOn()) console.error('Failed to load/enrich canvas:', e);
       app.setData({ items: [], edges: [] });
     }
+
     wireToolbar();
   })();
+
+  /* ===========================
+     (local) adaptCanvas helper (duplicate guard for bundlers)
+     =========================== */
+  function adaptCanvas(json) {
+    const items = []; const edges = [];
+    for (const n of json.nodes || []) {
+      const common = { id: n.id, x: Number.isFinite(n.x)?n.x:0, y: Number.isFinite(n.y)?n.y:0 };
+      if (n.type === 'text') {
+        const embeds = extractEmbeds(n.text);
+        const td = titleDesc(stripEmbeds(n.text));
+        const it = { ...common, title: td.title, description: td.desc };
+        if (embeds.length) it.imageCandidates = imageCandidatesFromVault(embeds[0]);
+        items.push(it); continue;
+      }
+      if (n.type === 'file') {
+        const f = String(n.file || '');
+        if (isImg(f)) {
+          items.push({ ...common, title: f.split('/').pop().replace(/\.[^.]+$/,''), description:'', imageCandidates: imageCandidatesFromVault(f) });
+        } else {
+          const parts = f.replace(/\.md$/i, '').split('/'); const title = parts.pop(); const crumb = parts.length ? parts.join(' › ') : '';
+          items.push({ ...common, title, description: crumb, _canvasPath: f, _needsManifestResolve: true, _needsEnrich: true, _nameGuesses: nameImageGuesses(title) });
+        }
+        continue;
+      }
+      items.push({ ...common, title: n.type || 'node', description: n.file || n.text || '' });
+    }
+    for (const e of (json.edges || [])) edges.push({ from: e.fromNode, to: e.toNode, label: e.label || '' });
+    return { items, edges };
+  }
 })();
 
-/* ===========================
-   Per-card image sizing clamp
-   =========================== */
-function applyPerCardSizing(app) {
-  const byId = new Map((app.data.items || []).map(it => [it.id, it]));
-  document.querySelectorAll('.card').forEach(el => {
-    const id = el._itemId;
-    if (!id) return;
-    const it = byId.get(id);
-    if (!it) return;
+/* ===========
+   Simple wiki-link resolver (optional, used elsewhere)
+   =========== */
+(function(){
+  const slug = s => String(s||'')
+    .replace(/&/g,' and ')
+    .trim()
+    .replace(/\./g,' ')
+    .replace(/[^\p{L}\p{N}]+/gu,'-')
+    .replace(/-+/g,'-')
+    .replace(/^-|-$/g,'')
+    .toLowerCase();
 
-    // Soft targets derived from canvas node dimensions
-    const targetW = Math.min(Math.max(it.w || it.width || 0, 0), 900);
-    const targetH = Math.min(Math.max(it.h || it.height || 0, 0), 1200);
+  function resolveByTitle(title) {
+    try {
+      const t = slug(title);
+      if (window.__PageManifestIndex && window.__PageManifestIndex.byTitle) {
+        const hit = window.__PageManifestIndex.byTitle.get(t);
+        if (hit && hit.length) return (hit.find(e=>!!e.url) || hit[0]).url || ('/'+t+'/');
+      }
+    } catch {}
+    return '/'+slug(title)+'/';
+  }
 
-    if (el.classList.contains('image')) {
-      if (targetW) el.style.setProperty('--img-max-width', Math.max(240, targetW) + 'px');
-      if (targetH) el.style.setProperty('--img-max-height', Math.max(320, targetH) + 'px');
-    }
-  });
-}
+  window.resolveNoteLink = function(noteTitle){
+    const url = resolveByTitle(noteTitle);
+    return url.endsWith('/') ? url : (url + '/');
+  };
+})();
