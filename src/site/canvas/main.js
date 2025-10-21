@@ -39,7 +39,6 @@
       }
       set(on);
     }
-    // keep available everywhere
     window.addEventListener('DOMContentLoaded', initToggle);
     set(on);
     return { isOn: () => on, set, initToggle };
@@ -282,8 +281,9 @@
     const el = [...document.querySelectorAll('.card')].find(n => n._itemId === itemId);
     if (!el) return;
     const b = document.createElement('div');
+    b.className = 'debug-badge';
     b.textContent = text;
-    b.style.cssText = `position:absolute;top:8px;left:8px;background:${bg};color:#fff;font:bold 11px/1.6 monospace;padding:2px 6px;border-radius:6px;`;
+    b.style.background = bg;
     el.appendChild(b);
   }
 
@@ -296,12 +296,10 @@
     for (const n of (json.nodes||[])) {
       if (n.type!=='file' || !isImg(n.file)) continue;
       const vault = String(n.file||'');
-      // direct candidate paths
       for (const c of imageCandidatesFromVault(vault)) {
         const base = lastSeg(vault).replace(/\.[^.]+$/,'');
         const k1 = slug(base);
         add(k1, c);
-        // also index by folder/title guesses (e.g., "Eurea")
         if (n.title) add(slug(n.title), c);
       }
     }
@@ -350,7 +348,7 @@
           _canvasPath: f,
           _needsManifestResolve: true,
           _needsEnrich: true,
-          imageCandidates: Array.from(new Set([...fromIndex])), // priority: image nodes in same canvas
+          imageCandidates: Array.from(new Set([...fromIndex])),
           _nameGuesses: guesses
         });
         continue;
@@ -373,6 +371,7 @@
       delete it._needsManifestResolve;
     }
     app.render();
+    applyPerCardSizing(app);         // <<— call the sizing helper
     rewriteLinksInDOM().catch(() => {});
   }
 
@@ -395,6 +394,7 @@
               if (info.teaser) it.description = it.description ? `${it.description}\n${info.teaser}` : info.teaser;
               if ((!info.teaser?.trim()) && (!it.imageCandidates?.length)) addBadge(it.id, 'NO CONTENT', '#7f8c8d');
               app.render();
+              applyPerCardSizing(app);  // <<—
               await rewriteLinksInDOM();
             } catch (e) {
               addBadge(it.id, 'ENR 404', '#555');
@@ -500,12 +500,12 @@
     resolveLinks(app);
     await enrich(app);
     app.fitToView({ margin: 160, bias: 'left', zoomOut: 1.25, extraShiftX: 0 });
+    applyPerCardSizing(app);          // <<—
     await rewriteLinksInDOM();
-    Debug.initToggle(); // make sure toggle present after dynamic loads
+    Debug.initToggle();
   }
 
   function wireUploadUI(tb){
-    // hidden file input
     let fi = $('#canvas-file-input');
     if (!fi) {
       fi = document.createElement('input');
@@ -525,18 +525,11 @@
           btn.disabled = true; btn.textContent = 'Uploading…';
           const text = await f.text();
           const json = JSON.parse(text);
-
-          // basic sanity
           if (!json || !Array.isArray(json.nodes) || !Array.isArray(json.edges)) {
             throw new Error('Not a valid Obsidian .canvas JSON');
           }
-
-          // Commit to repo
           await commitFileToRepo('src/site/canvas/tir.canvas.json', json, `chore(canvas): replace tir.canvas.json via upload (${f.name})`);
-
-          // Load immediately
           await loadCanvasObject(json);
-
           btn.textContent = 'Uploaded ✓';
           setTimeout(()=>{ btn.textContent='Upload .canvas'; btn.disabled=false; }, 1200);
         } catch (e) {
@@ -548,8 +541,6 @@
       };
       fi.click();
     };
-
-    // Optional: drag & drop anywhere
     window.addEventListener('dragover', e => { e.preventDefault(); });
     window.addEventListener('drop', async e => {
       if (!e.dataTransfer) return;
@@ -581,9 +572,7 @@
       const url = URL.createObjectURL(blob); const a=Object.assign(document.createElement('a'),{href:url,download:'data.json'}); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
     };
     ensureBtn(tb,'btn-save-repo','Save to Repo','Commit canvas positions to repository').onclick = savePositionsToRepo;
-
     wireUploadUI(tb);
-
     if (!$('#zoom-level')) { const span=document.createElement('span'); span.id='zoom-level'; span.textContent='100%'; span.style.marginLeft='8px'; tb.appendChild(span); }
     Debug.initToggle();
   }
@@ -601,20 +590,20 @@
       app.setData(data);
       resolveLinks(app);
       await enrich(app);
-
-      // Initial left-biased fit and slightly more zoomed out
       app.fitToView({ margin: 160, bias: 'left', zoomOut: 1.25, extraShiftX: 0 });
+      applyPerCardSizing(app);        // <<—
       await rewriteLinksInDOM();
     } catch (e) {
       if (Debug.isOn()) console.error('Failed to load/enrich canvas:', e);
       app.setData({ items: [], edges: [] });
     }
-
     wireToolbar();
   })();
 })();
 
-
+/* ===========================
+   Per-card image sizing clamp
+   =========================== */
 function applyPerCardSizing(app) {
   const byId = new Map((app.data.items || []).map(it => [it.id, it]));
   document.querySelectorAll('.card').forEach(el => {
@@ -623,7 +612,7 @@ function applyPerCardSizing(app) {
     const it = byId.get(id);
     if (!it) return;
 
-    // Canvas node may have very large width/height; set soft targets.
+    // Soft targets derived from canvas node dimensions
     const targetW = Math.min(Math.max(it.w || it.width || 0, 0), 900);
     const targetH = Math.min(Math.max(it.h || it.height || 0, 0), 1200);
 
@@ -633,4 +622,3 @@ function applyPerCardSizing(app) {
     }
   });
 }
-
