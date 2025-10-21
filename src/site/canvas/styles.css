@@ -20,14 +20,6 @@
 
   --cv-grid-gap:      40px;
   --cv-grid-line:     color-mix(in oklab, var(--cv-border), transparent 70%);
-
-  /* Edges + image clamps */
-  --edge-stroke:      #7b6d63;        /* soft brown-grey for parchment */
-  --edge-stroke-faint:#b6a89f;
-  --edge-width:       2px;
-
-  --img-max-width:    420px;
-  --img-max-height:   560px;
 }
 
 /* Optional DARK palette — only if your site sets a dark theme class/attr */
@@ -42,9 +34,6 @@ html[data-theme="dark"], .theme-dark {
   --cv-border:     var(--border-color, #2a2d4a);
   --cv-shadow:     0 8px 24px rgba(0,0,0,0.25);
   --cv-grid-line:  color-mix(in oklab, var(--cv-border), transparent 50%);
-
-  --edge-stroke:   #9aa3bb;
-  --edge-stroke-faint:#6f7690;
 }
 
 /* ---------------- Base ---------------- */
@@ -113,7 +102,6 @@ a:hover { text-decoration: underline; }
   border-radius: 12px;
   box-shadow: var(--cv-shadow);
   user-select: none;
-  z-index: 1; /* above edges */
 }
 
 .card h3 {
@@ -124,7 +112,6 @@ a:hover { text-decoration: underline; }
 }
 .card p { margin: 0; font-size: 14px; line-height: 1.35; color: var(--cv-text-muted); }
 
-/* drag handle */
 .card .drag-handle {
   position: absolute; inset: -6px -6px auto auto;
   width: 18px; height: 18px; border-radius: 50%;
@@ -140,7 +127,7 @@ a:hover { text-decoration: underline; }
   border-radius: 10px;
 }
 
-/* ---------------- Markdown look ---------------- */
+/* ---------------- Markdown ---------------- */
 .card .md-body { font-size: .95rem; line-height: 1.45; color: var(--cv-text); }
 .card .md-body h1,.card .md-body h2,.card .md-body h3{ margin:.25rem 0 .35rem; color: var(--cv-heading); }
 .card .md-body h4,.card .md-body h5,.card .md-body h6{ margin:.2rem 0 .25rem; color: var(--cv-heading); font-weight:600; }
@@ -158,38 +145,75 @@ a:hover { text-decoration: underline; }
 .card .md-body img{ display:block; max-width:100%; height:auto; border-radius:.4rem; }
 .card .md-body mark{ background:#fff59d; padding:0 .15em; border-radius:.2em; }
 
-/* ---------------- Debug badge (opt-in) ---------------- */
+/* ---------------- Debug badge ---------------- */
 .canvas-debug .card .debug-badge {
   position:absolute; top:8px; right:8px;
   background:#c0392b; color:#fff; font:bold 11px/1.6 monospace;
   padding:2px 6px; border-radius:6px;
+
+   /* ============ Canvas theme harmonized with site ============ */
+:root {
+  /* edge (arrow) color tuned for parchment bg */
+  --edge-stroke: #7b6d63;          /* soft brown-grey */
+  --edge-stroke-faint: #b6a89f;
+  --edge-width: 2px;
+
+  /* image sizing caps so huge source dims don’t explode the layout */
+  --img-max-width: 420px;
+  --img-max-height: 560px;
 }
 
-/* ---------------- Edges (arrows) ---------------- */
+/* Background grid already matches site; keep it faint */
+#world {
+  background-image:
+    linear-gradient(to right, rgba(0,0,0,.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0,0,0,.06) 1px, transparent 1px);
+  background-size: 64px 64px, 64px 64px;
+}
+
+/* --- Edges (arrows) --- */
 .edges,
 .edges svg {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 0;
+  z-index: 0; /* below cards */
 }
 .edges path {
   stroke: var(--edge-stroke);
   stroke-width: var(--edge-width);
   fill: none;
 }
-.edges path.is-faint { stroke: var(--edge-stroke-faint); }
-.edges marker path { fill: var(--edge-stroke); }
+.edges path.is-faint {
+  stroke: var(--edge-stroke-faint);
+}
+.edges marker path {
+  fill: var(--edge-stroke);
+}
 
-/* ---------------- Image cards: clamp & contain ---------------- */
-.card.image { max-width: var(--img-max-width); }
+/* --- Cards sit above edges --- */
+.card {
+  position: absolute;
+  z-index: 1;
+}
+
+/* --- Image cards: clamp and keep aspect --- */
+.card.image {
+  /* let the image decide intrinsic width, but never exceed caps */
+  max-width: var(--img-max-width);
+}
 .card.image img {
   display: block;
   max-width: var(--img-max-width);
   max-height: var(--img-max-height);
-  width: auto; height: auto;
-  object-fit: contain;
+  width: auto;
+  height: auto;
+  object-fit: contain; /* don’t crop artwork */
+  border-radius: 8px;
 }
 
-/* Text cards get consistent readable width */
-.card.text { max-width: 460px; }
+/* Optional: text cards get a consistent readable width */
+.card.text {
+  max-width: 460px;
+}
+
