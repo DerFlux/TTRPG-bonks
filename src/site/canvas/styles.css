@@ -150,4 +150,70 @@ a:hover { text-decoration: underline; }
   position:absolute; top:8px; right:8px;
   background:#c0392b; color:#fff; font:bold 11px/1.6 monospace;
   padding:2px 6px; border-radius:6px;
+
+   /* ============ Canvas theme harmonized with site ============ */
+:root {
+  /* edge (arrow) color tuned for parchment bg */
+  --edge-stroke: #7b6d63;          /* soft brown-grey */
+  --edge-stroke-faint: #b6a89f;
+  --edge-width: 2px;
+
+  /* image sizing caps so huge source dims don’t explode the layout */
+  --img-max-width: 420px;
+  --img-max-height: 560px;
 }
+
+/* Background grid already matches site; keep it faint */
+#world {
+  background-image:
+    linear-gradient(to right, rgba(0,0,0,.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0,0,0,.06) 1px, transparent 1px);
+  background-size: 64px 64px, 64px 64px;
+}
+
+/* --- Edges (arrows) --- */
+.edges,
+.edges svg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0; /* below cards */
+}
+.edges path {
+  stroke: var(--edge-stroke);
+  stroke-width: var(--edge-width);
+  fill: none;
+}
+.edges path.is-faint {
+  stroke: var(--edge-stroke-faint);
+}
+.edges marker path {
+  fill: var(--edge-stroke);
+}
+
+/* --- Cards sit above edges --- */
+.card {
+  position: absolute;
+  z-index: 1;
+}
+
+/* --- Image cards: clamp and keep aspect --- */
+.card.image {
+  /* let the image decide intrinsic width, but never exceed caps */
+  max-width: var(--img-max-width);
+}
+.card.image img {
+  display: block;
+  max-width: var(--img-max-width);
+  max-height: var(--img-max-height);
+  width: auto;
+  height: auto;
+  object-fit: contain; /* don’t crop artwork */
+  border-radius: 8px;
+}
+
+/* Optional: text cards get a consistent readable width */
+.card.text {
+  max-width: 460px;
+}
+
