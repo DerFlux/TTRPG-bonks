@@ -1,4 +1,3 @@
 /canvas/*                 /canvas/:splat            200
 /img/*                    /img/:splat               200
 /notes/*                  /notes/:splat             200
-/*                        /index.html               200
