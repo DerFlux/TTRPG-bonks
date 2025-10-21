@@ -613,3 +613,24 @@
     wireToolbar();
   })();
 })();
+
+
+function applyPerCardSizing(app) {
+  const byId = new Map((app.data.items || []).map(it => [it.id, it]));
+  document.querySelectorAll('.card').forEach(el => {
+    const id = el._itemId;
+    if (!id) return;
+    const it = byId.get(id);
+    if (!it) return;
+
+    // Canvas node may have very large width/height; set soft targets.
+    const targetW = Math.min(Math.max(it.w || it.width || 0, 0), 900);
+    const targetH = Math.min(Math.max(it.h || it.height || 0, 0), 1200);
+
+    if (el.classList.contains('image')) {
+      if (targetW) el.style.setProperty('--img-max-width', Math.max(240, targetW) + 'px');
+      if (targetH) el.style.setProperty('--img-max-height', Math.max(320, targetH) + 'px');
+    }
+  });
+}
+
