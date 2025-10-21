@@ -80,7 +80,7 @@
       "x": -3444,
       "y": 690,
       "width": 414,
-      "height": 230
+      "height": 530
     },
     {
       "id": "df4f74132828027a",
@@ -117,15 +117,6 @@
       "y": 1228,
       "width": 418,
       "height": 515
-    },
-    {
-      "id": "ff73da041b890a2d",
-      "type": "file",
-      "file": "Images/Eurea.png",
-      "x": -3437,
-      "y": 961,
-      "width": 400,
-      "height": 267
     },
     {
       "id": "8db0d1590050d12f",
@@ -296,7 +287,7 @@
       "x": -5224,
       "y": -280,
       "width": 684,
-      "height": 819
+      "height": 900
     },
     {
       "id": "83f3693ca337035a",
@@ -438,6 +429,7 @@
     },
     {
       "id": "411763a60a6b1354",
+      "toFloating": false,
       "fromNode": "c77a2d31f94996df",
       "fromSide": "bottom",
       "toNode": "41007c06b417dff9",
@@ -657,13 +649,6 @@
       "fromNode": "41007c06b417dff9",
       "fromSide": "bottom",
       "toNode": "353a6235c63edc00",
-      "toSide": "top"
-    },
-    {
-      "id": "5513c22e2d173b15",
-      "fromNode": "4287077f9fe87620",
-      "fromSide": "bottom",
-      "toNode": "ff73da041b890a2d",
       "toSide": "top"
     },
     {
