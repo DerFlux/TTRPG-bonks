@@ -1,6 +1,0 @@
----
-{"dg-publish":true,"permalink":"/2-locations/avalon/adventurers-guild-leaders-edward-and-abigale-teach-green/"}
----
-
-
-The Adventurers' Guild is the largest group in [[2. Locations/Avalon/Avalon (Between Astra and Terra)\|Avalon]] by population. The other factions mostly scout their members from particularly promising or accomplished members of this guild. It is also the only faction with an ==**established presence outside the Avalon Archipelago**.== They make their goal maintaining peace in remote parts of the world, where neither city guards nor most armies want to go. Preserving the life of the people and adventurers is their priority, but it's not always an easy endeavour. [[Edward\|Edward]] & [[Abigail Teach.png|Abigale]] are the ever traveling duo at the helm of the Adventurers' Guild. They're the most popular leaders among Avalon's top brass due to their frequent travels and public appearances. They've been on so many adventures throughout the years that telling whether a story about their exploits is truth or myth has become almost impossible to tell.
