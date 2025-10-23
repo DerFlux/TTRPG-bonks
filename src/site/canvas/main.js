@@ -340,7 +340,7 @@
   }
 
   /* ===========================
-   * Enrichment
+   * Enrichment (strip images from snippet to avoid duplicates)
    * =========================== */
   async function tryFetch(url) {
     const u = new URL(url, location.origin);
@@ -369,6 +369,12 @@
     }
     return '';
   };
+  function stripImagesFromHtml(html) {
+    const d = document.implementation.createHTMLDocument('');
+    d.body.innerHTML = html || '';
+    d.body.querySelectorAll('img, picture, figure').forEach(n => n.remove());
+    return d.body.innerHTML;
+  }
   const firstImageFromPage = (doc, pageUrl) => {
     const abs = (v) => v ? new URL(v, pageUrl).href : '';
     const og  = doc.querySelector('meta[property="og:image"], meta[name="og:image"]');
@@ -394,7 +400,8 @@
       const t = await tryFetch(url);
       if (!t.ok) throw new Error('ENR404 ' + url);
       const doc = new DOMParser().parseFromString(t.html, 'text/html');
-      return { finalUrl: t.url, image: firstImageFromPage(doc, t.url), htmlSnippet: firstHTML(doc) };
+      const snippet = stripImagesFromHtml(firstHTML(doc));
+      return { finalUrl: t.url, image: firstImageFromPage(doc, t.url), htmlSnippet: snippet };
     })();
     pageCache.set(url, p);
     return p;
@@ -630,12 +637,12 @@
     function injectStyles(){
       if ($('#li-style')) return;
       const css = `
-        .li-panel{position:fixed;top:64px;right:24px;width:520px;max-height:75vh;background:#fff;border:1px solid rgba(0,0,0,.1);box-shadow:0 10px 30px rgba(0,0,0,.18);border-radius:12px;display:flex;flex-direction:column;z-index:9999;font:14px/1.3 system-ui,Segoe UI,Roboto,Arial,sans-serif;}
+        .li-panel{position:fixed;top:64px;right:24px;width:560px;max-height:75vh;background:#fff;border:1px solid rgba(0,0,0,.1);box-shadow:0 10px 30px rgba(0,0,0,.18);border-radius:12px;display:flex;flex-direction:column;z-index:9999;font:14px/1.3 system-ui,Segoe UI,Roboto,Arial,sans-serif;}
         .li-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid rgba(0,0,0,.06);background:#faf8f4;border-top-left-radius:12px;border-top-right-radius:12px}
         .li-head strong{font-weight:700}
         .li-actions{display:flex;gap:8px;align-items:center}
         .li-body{overflow:auto;padding:8px}
-        .li-row{display:grid;grid-template-columns:1.1fr 1.1fr auto 1.2fr;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px dashed rgba(0,0,0,.07)}
+        .li-row{display:grid;grid-template-columns:1.2fr 1.2fr auto 1.4fr;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px dashed rgba(0,0,0,.07)}
         .li-col a{color:#b33;text-decoration:underline}
         .li-badge{display:inline-block;font:600 12px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:1px 6px;border-radius:999px;border:1px solid #ddd}
         .li-badge.ok{background:#eafbea;color:#0a7a2a;border-color:#cfe9cf}
@@ -685,23 +692,18 @@
         <div class="li-head">
           <strong>Link Inspector</strong>
           <div class="li-actions">
-            <label><input id="li-highlight" type="checkbox"> Highlight on canvas</label>
-            <button id="li-save">Save Mappings</button>
+            <label><input id="li-highlight" type="checkbox"> Highlight links on canvas</label>
             <button id="li-close">Close</button>
           </div>
         </div>
         <div class="li-search"><input id="li-filter" type="text" placeholder="Filter by link text…"></div>
         <div class="li-body"><div class="li-list">Scanning…</div></div>
-        <div class="li-foot"><div class="li-pills"><span class="li-pill" id="li-count">0 items</span></div></div>
+        <div class="li-foot"><div class="li-pills"><span class="li-pill" id="li-count">0 items</span><span class="li-pill">Tip: Enter a full URL or a /site-relative path or a page title, then “Apply”.</span></div></div>
       `;
       document.body.appendChild(panel);
 
       $('#li-close', panel).addEventListener('click', hidePanel);
       $('#li-highlight', panel).addEventListener('change', e => setHighlight(e.target.checked));
-      $('#li-save', panel).addEventListener('click', async () => {
-        try { $('#li-save', panel).textContent='Saving…'; await saveAliasesToRepo(); $('#li-save', panel).textContent='Saved ✓'; setTimeout(()=>$('#li-save', panel).textContent='Save Mappings', 900); }
-        catch(e){ console.error(e); alert('Saving failed.'); $('#li-save', panel).textContent='Save Mappings'; }
-      });
 
       const list = panel.querySelector('.li-list');
       await buildList(list);
@@ -751,21 +753,32 @@
       })();
 
       btn.addEventListener('click', async () => {
-        const v = input.value.trim();
-        if (!v) { delete LinkAliases.byText[text]; } else { LinkAliases.byText[text] = v; }
+        try {
+          // update alias map
+          const v = input.value.trim();
+          if (!v) { delete LinkAliases.byText[text]; } else { LinkAliases.byText[text] = v; }
 
-        // update ALL anchors with this visible text
-        for (const a of anchors) {
-          const old = a.getAttribute('href') || '';
-          const resolved = await resolveUrlFromHrefOrText(old, text);
-          a.setAttribute('href', resolved);
+          // persist immediately (password already cached from enabling Debug)
+          btn.disabled = true; btn.textContent = 'Saving…';
+          await saveAliasesToRepo();
+
+          // update ALL anchors with this visible text
+          for (const a of anchors) {
+            const old = a.getAttribute('href') || '';
+            const resolved = await resolveUrlFromHrefOrText(old, text);
+            a.setAttribute('href', resolved);
+          }
+          // refresh row’s display
+          const a = anchors[0];
+          const resolved = await resolveUrlFromHrefOrText(a.getAttribute('href')||'', text);
+          link.textContent = resolved; link.href = resolved;
+          const st = await checkUrl(resolved);
+          badge.className = 'li-badge ' + (st.ok ? 'ok':'bad'); badge.textContent = st.ok ? 'OK' : '404';
+          btn.textContent = 'Saved ✓'; setTimeout(()=>{ btn.textContent='Apply'; btn.disabled=false; }, 800);
+        } catch (e) {
+          console.error(e); alert('Saving link mapping failed. Check console.');
+          btn.textContent = 'Apply'; btn.disabled = false;
         }
-        // refresh row’s display
-        const a = anchors[0];
-        const resolved = await resolveUrlFromHrefOrText(a.getAttribute('href')||'', text);
-        link.textContent = resolved; link.href = resolved;
-        const st = await checkUrl(resolved);
-        badge.className = 'li-badge ' + (st.ok ? 'ok':'bad'); badge.textContent = st.ok ? 'OK' : '404';
       });
 
       return row;
