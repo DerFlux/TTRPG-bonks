@@ -1,9 +1,10 @@
-/* main.js — compact canvas controller
+/* main.js — compact canvas controller with mobile touch
  *  - Password-gated Debug + Link Inspector (live Apply + alias save)
  *  - Manifest-based link resolving (+ aliases)
  *  - Obsidian-style markdown render, snippet enrichment (no duplicate <img>)
  *  - Upload/commit .canvas, save positions, DnD upload
- *  - Left-biased initial view, 100% is slightly zoomed out
+ *  - Left-biased initial view, 100% slightly zoomed out
+ *  - MOBILE: pan, pinch-zoom, double-tap, on-screen +/- buttons
  */
 
 (() => {
@@ -423,6 +424,13 @@
     btn(tb,"btn-save-repo","Save to Repo","Commit positions").onclick=savePositionsToRepo;
     wireUpload(tb);
     if(!$("#zoom-level")) tb.appendChild(Object.assign(document.createElement("span"),{id:"zoom-level",textContent:""}));
+    // mobile +/- buttons
+    if (!$("#btn-zoom-minus")) {
+      const minus = btn(tb,"btn-zoom-minus","−","Zoom out");
+      const plus  = btn(tb,"btn-zoom-plus","+","Zoom in");
+      minus.onclick = () => View.zoomAt(1/1.2, innerWidth/2, innerHeight/2);
+      plus.onclick  = () => View.zoomAt(1.2, innerWidth/2, innerHeight/2);
+    }
     Debug.initToggle();
     Debug.is() && LinkInspector.ensureButton();
   }
@@ -521,6 +529,113 @@
     return { ensureButton };
   })();
 
+  /* --------------------------- MOBILE TOUCH SUPPORT --------------------------- */
+  // lightweight view helper with fallbacks if CanvasApp lacks pan/zoom APIs
+  const View = (() => {
+    let scale = 1, x = 0, y = 0;
+    const world = $("#world");
+    const has = {
+      panBy: typeof app.panBy === "function",
+      zoomAt: typeof app.zoomAt === "function",
+      setView: typeof app.setView === "function",
+      getView: typeof app.getView === "function",
+    };
+    const apply = () => {
+      if (has.setView) app.setView({ x, y, scale });
+      else world.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+    };
+    const read = () => {
+      if (has.getView) { const v = app.getView(); if (v) ({ x, y, scale } = v); }
+      return { x, y, scale };
+    };
+    const panBy = (dx, dy) => { if (has.panBy) app.panBy(dx, dy); else { x += dx; y += dy; apply(); } };
+    const zoomAt = (factor, cx, cy) => {
+      if (has.zoomAt) return app.zoomAt(factor, cx, cy);
+      // zoom around a point (cx,cy) in viewport coords
+      const before = { x: (cx - x) / scale, y: (cy - y) / scale };
+      scale *= factor;
+      const after = { x: before.x * scale, y: before.y * scale };
+      x = cx - after.x; y = cy - after.y; apply();
+    };
+    const set = (nx, ny, ns) => { x = nx; y = ny; scale = ns; apply(); };
+    return { read, panBy, zoomAt, set, apply, get scale(){return scale;} };
+  })();
+
+  function enableTouchGestures() {
+    const el = $("#canvas-container");
+    if (!el) return;
+
+    // prevent page scroll while interacting with the canvas
+    el.style.touchAction = "none";
+
+    let touchMode = null; // "pan" | "pinch"
+    let last = { x: 0, y: 0 };
+    let lastDist = 0;
+    let lastCenter = { x: 0, y: 0 };
+    let lastTap = { t: 0, x: 0, y: 0, fingers: 0 };
+
+    const getTouches = e => [...e.touches].map(t => ({ x: t.clientX, y: t.clientY }));
+    const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const center = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+
+    on(el, "touchstart", e => {
+      if (e.touches.length === 1) {
+        touchMode = "pan";
+        last = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      } else if (e.touches.length >= 2) {
+        touchMode = "pinch";
+        const [a, b] = getTouches(e);
+        lastDist = dist(a, b);
+        lastCenter = center(a, b);
+      }
+      e.preventDefault();
+    }, { passive: false });
+
+    on(el, "touchmove", e => {
+      if (!touchMode) return;
+      if (touchMode === "pan" && e.touches.length === 1) {
+        const t = e.touches[0];
+        View.panBy(t.clientX - last.x, t.clientY - last.y);
+        last = { x: t.clientX, y: t.clientY };
+      } else if (touchMode === "pinch" && e.touches.length >= 2) {
+        const [a, b] = getTouches(e);
+        const d = dist(a, b);
+        const c = center(a, b);
+        const factor = d / Math.max(1, lastDist);
+        if (Math.abs(factor - 1) > 0.001) {
+          View.zoomAt(factor, c.x, c.y);
+          lastDist = d; lastCenter = c;
+        }
+      }
+      e.preventDefault();
+    }, { passive: false });
+
+    on(el, "touchend", e => {
+      // double-tap: zoom in; two-finger double-tap: zoom out
+      const now = performance.now();
+      const fingers = e.changedTouches.length;
+      const tap = e.touches.length === 0 && (now - lastTap.t < 300) && Math.hypot(
+        (e.changedTouches[0]?.clientX || 0) - lastTap.x,
+        (e.changedTouches[0]?.clientY || 0) - lastTap.y
+      ) < 24;
+
+      if (tap) {
+        const cx = lastTap.x, cy = lastTap.y;
+        if (lastTap.fingers >= 2) View.zoomAt(1/1.4, cx, cy);
+        else View.zoomAt(1.4, cx, cy);
+      }
+
+      lastTap = {
+        t: now,
+        x: e.changedTouches[0]?.clientX || 0,
+        y: e.changedTouches[0]?.clientY || 0,
+        fingers
+      };
+
+      if (e.touches.length === 0) touchMode = null;
+    }, { passive: true });
+  }
+
   /* ----------------------------------- boot ----------------------------------- */
   (async () => {
     try {
@@ -534,6 +649,7 @@
     } catch (e) { Debug.is() && console.error("Canvas boot failed:", e); app.setData({ items:[], edges:[] }); }
     // UI
     toolbar();
+    enableTouchGestures();               // <— enable mobile gestures
     // Gate debug features on enable
     on(document,"canvas-debug", e => { if (e.detail?.on) { Debug.gate(); LinkInspector.ensureButton(); } });
   })();
