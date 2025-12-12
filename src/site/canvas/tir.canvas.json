@@ -82,15 +82,6 @@
       "height": 460
     },
     {
-      "id": "2149e2786fcd63d3",
-      "type": "file",
-      "file": "2. Locations/Astra/The Northern Lands/Kingdom of Midgard/Asphodel.md",
-      "x": -4964,
-      "y": 1315,
-      "width": 184,
-      "height": 50
-    },
-    {
       "id": "a62d86f152e0bb29",
       "type": "file",
       "file": "3. NPCs/Limurea/Lora Lemer.md",
@@ -98,15 +89,6 @@
       "y": 1228,
       "width": 418,
       "height": 515
-    },
-    {
-      "id": "32e5205ad6adf855",
-      "type": "file",
-      "file": "3. NPCs/Avalon/Fey.md",
-      "x": -2360,
-      "y": 1880,
-      "width": 140,
-      "height": 99
     },
     {
       "id": "19e7def0138c0054",
@@ -133,7 +115,7 @@
       "x": -3643,
       "y": 2405,
       "width": 400,
-      "height": 400
+      "height": 695
     },
     {
       "id": "7039e70e958e8da2",
@@ -141,17 +123,8 @@
       "file": "3. NPCs/Avalon/Phoebe.md",
       "x": -4128,
       "y": 2405,
-      "width": 400,
-      "height": 400
-    },
-    {
-      "id": "07fb2fe16cdd7c3e",
-      "type": "file",
-      "file": "3. NPCs/Avalon/Xavier Crepus.md",
-      "x": -60,
-      "y": 1880,
-      "width": 488,
-      "height": 840
+      "width": 448,
+      "height": 695
     },
     {
       "id": "9c72c69fef3bc20b",
@@ -186,7 +159,7 @@
       "file": "2. Locations/ASIA TM COUNTRY IDK.md",
       "x": -945,
       "y": -22,
-      "width": 342,
+      "width": 345,
       "height": 263
     },
     {
@@ -213,8 +186,8 @@
       "file": "2. Locations/Avalon/Intelligence Leader Aleister Crowley (Dark Blue).md",
       "x": -2340,
       "y": 1340,
-      "width": 480,
-      "height": 305
+      "width": 500,
+      "height": 436
     },
     {
       "id": "353a6235c63edc00",
@@ -275,77 +248,10 @@
       "type": "file",
       "file": "3. NPCs/Thespians/Thespians.md",
       "x": 340,
-      "y": 253,
+      "y": 80,
       "width": 469,
-      "height": 229,
+      "height": 402,
       "color": "1"
-    },
-    {
-      "id": "18625fa28a09f4c1",
-      "type": "file",
-      "file": "3. NPCs/Thespians/Vavel, the Black Dragon.md",
-      "x": 813,
-      "y": 601,
-      "width": 403,
-      "height": 494,
-      "color": "1"
-    },
-    {
-      "id": "b75375266455372d",
-      "type": "file",
-      "file": "3. NPCs/Thespians/Adlibs.md",
-      "x": -60,
-      "y": 1222,
-      "width": 400,
-      "height": 400
-    },
-    {
-      "id": "220fbbb031a10e38",
-      "type": "file",
-      "file": "3. NPCs/Thespians/Albert, the Jester.md",
-      "x": -64,
-      "y": 601,
-      "width": 404,
-      "height": 581,
-      "color": "1"
-    },
-    {
-      "id": "24b15c2ec0b2f7ff",
-      "type": "file",
-      "file": "3. NPCs/Thespians/Cartha Coccineus, the Scarlet Priestess.md",
-      "x": 417,
-      "y": 598,
-      "width": 359,
-      "height": 624,
-      "color": "1"
-    },
-    {
-      "id": "bcc618c696ac5739",
-      "type": "file",
-      "file": "3. NPCs/Thespians/Quovadis.md",
-      "x": 397,
-      "y": 1253,
-      "width": 400,
-      "height": 627
-    },
-    {
-      "id": "9a572416479fdce6",
-      "type": "file",
-      "file": "2. Locations/Astra/The Northern Lands/Northern Lands.md",
-      "x": -5219,
-      "y": -260,
-      "width": 684,
-      "height": 900
-    },
-    {
-      "id": "41007c06b417dff9",
-      "type": "file",
-      "file": "2. Locations/Avalon/Avalon (Between Astra and Terra).md",
-      "x": -1845,
-      "y": 723,
-      "width": 530,
-      "height": 337,
-      "color": "#00f048"
     },
     {
       "id": "4287077f9fe87620",
@@ -364,6 +270,100 @@
       "y": 985,
       "width": 400,
       "height": 267
+    },
+    {
+      "id": "9a572416479fdce6",
+      "type": "file",
+      "file": "2. Locations/Astra/The Northern Lands/Northern Lands.md",
+      "x": -5280,
+      "y": -260,
+      "width": 684,
+      "height": 900
+    },
+    {
+      "id": "2149e2786fcd63d3",
+      "type": "file",
+      "file": "2. Locations/Astra/The Northern Lands/Kingdom of Midgard/Asphodel.md",
+      "x": -4856,
+      "y": 1310,
+      "width": 184,
+      "height": 50
+    },
+    {
+      "id": "32e5205ad6adf855",
+      "type": "file",
+      "file": "3. NPCs/Avalon/Fei.md",
+      "x": -2442,
+      "y": 1880,
+      "width": 204,
+      "height": 320
+    },
+    {
+      "id": "41007c06b417dff9",
+      "type": "file",
+      "file": "2. Locations/Avalon/Avalon (Between Astra and Terra).md",
+      "x": -1880,
+      "y": 540,
+      "width": 560,
+      "height": 720,
+      "color": "#00f048"
+    },
+    {
+      "id": "18625fa28a09f4c1",
+      "type": "file",
+      "file": "3. NPCs/Thespians/Vavel, the Black Dragon.md",
+      "x": 1240,
+      "y": 581,
+      "width": 427,
+      "height": 621,
+      "color": "1"
+    },
+    {
+      "id": "24b15c2ec0b2f7ff",
+      "type": "file",
+      "file": "3. NPCs/Thespians/Cartha Coccineus, the Scarlet Priestess.md",
+      "x": 797,
+      "y": 598,
+      "width": 359,
+      "height": 624,
+      "color": "1"
+    },
+    {
+      "id": "bcc618c696ac5739",
+      "type": "file",
+      "file": "3. NPCs/Thespians/Quovadis.md",
+      "x": 777,
+      "y": 1313,
+      "width": 400,
+      "height": 567
+    },
+    {
+      "id": "07fb2fe16cdd7c3e",
+      "type": "file",
+      "file": "3. NPCs/Avalon/Xavier Crepus.md",
+      "x": -620,
+      "y": 2680,
+      "width": 480,
+      "height": 840
+    },
+    {
+      "id": "220fbbb031a10e38",
+      "type": "file",
+      "file": "3. NPCs/Thespians/Albert, the Jester.md",
+      "x": 240,
+      "y": 601,
+      "width": 404,
+      "height": 581,
+      "color": "1"
+    },
+    {
+      "id": "b75375266455372d",
+      "type": "file",
+      "file": "3. NPCs/Thespians/Adlibs.md",
+      "x": 198,
+      "y": 1271,
+      "width": 488,
+      "height": 578
     }
   ],
   "edges": [
@@ -399,6 +399,7 @@
     },
     {
       "id": "37d6acbdef9cbe38",
+      "toFloating": false,
       "fromNode": "359ab5c6976cc1e0",
       "fromSide": "bottom",
       "toNode": "b84fd3f8779ee7d3",
@@ -437,6 +438,7 @@
     {
       "id": "b19f1c779d4c0858",
       "toFloating": false,
+      "fromFloating": false,
       "fromNode": "41007c06b417dff9",
       "fromSide": "bottom",
       "toNode": "1f2381aa68988f98",
@@ -451,6 +453,7 @@
     },
     {
       "id": "6c9535c8827968c6",
+      "toFloating": false,
       "fromNode": "41007c06b417dff9",
       "fromSide": "bottom",
       "toNode": "c0c6bf6324baaf44",
@@ -487,6 +490,7 @@
     {
       "id": "c0293efb8f56e7b0",
       "toFloating": false,
+      "fromFloating": false,
       "fromNode": "359ab5c6976cc1e0",
       "fromSide": "bottom",
       "toNode": "df4f74132828027a",
@@ -656,6 +660,7 @@
       "id": "e52c672210705720",
       "styleAttributes": {},
       "toFloating": false,
+      "fromFloating": false,
       "fromNode": "41007c06b417dff9",
       "fromSide": "left",
       "toNode": "9c2dda7f2ae3f3e2",
